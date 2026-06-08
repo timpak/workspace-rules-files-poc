@@ -1,0 +1,18 @@
+{
+	"friendlyURL": "/admin",
+	"hidden": false,
+	"name": "Admin",
+	"name_i18n": {
+		"en_US": "Admin"
+	},
+	"permissions": [
+		{
+			"actionIds": ["VIEW"],
+			"roleName": "Administrator",
+			"scope": 4
+		}
+	],
+	"private": false,
+	"system": false,
+	"type": "Content"
+}

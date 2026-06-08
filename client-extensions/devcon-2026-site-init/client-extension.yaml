@@ -1,0 +1,16 @@
+devcon-2026-site-init:
+  name: DevCon 2026 Site Initializer
+  oAuthApplicationHeadlessServer: devcon-2026-site-oauth
+  siteExternalReferenceCode: devcon-2026
+  siteName: DevCon 2026
+  type: siteInitializer
+
+devcon-2026-site-oauth:
+  name: DevCon 2026 Site OAuth
+  scopes:
+    - Liferay.Headless.Admin.Site.everything
+    - Liferay.Headless.Admin.Content.everything
+    - Liferay.Object.Admin.REST.everything
+    - Liferay.Headless.Object.everything
+    - Liferay.Headless.Admin.User.everything
+  type: oAuthApplicationHeadlessServer

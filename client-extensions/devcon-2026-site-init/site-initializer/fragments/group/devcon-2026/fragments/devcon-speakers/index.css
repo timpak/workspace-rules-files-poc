@@ -1,0 +1,103 @@
+#wrapper .devcon-speakers-wrapper {
+	margin: 0 auto;
+	max-width: 1200px;
+	padding: 4rem 2rem;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speakers-header {
+	margin-bottom: 3rem;
+	text-align: center;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speakers-title {
+	font-size: 2.25rem;
+	font-weight: 700;
+	margin-bottom: 0.75rem;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speakers-subtitle {
+	color: #6b7280;
+	font-size: 1.1rem;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speakers-grid {
+	display: grid;
+	gap: 1.5rem;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+#wrapper .devcon-speakers-wrapper a.devcon-speaker-card,
+#wrapper .devcon-speakers-wrapper a.devcon-speaker-card:hover {
+	color: inherit;
+	text-decoration: none;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-card {
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 12px;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 2rem 1.5rem 1.75rem;
+	text-align: center;
+	transition: box-shadow 0.2s, transform 0.2s;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-card:hover {
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+	transform: translateY(-3px);
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-photo-wrap {
+	background: linear-gradient(135deg, #c0aede, #d1d4f9);
+	border-radius: 50%;
+	height: 96px;
+	margin-bottom: 1.25rem;
+	overflow: hidden;
+	width: 96px;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-photo {
+	display: block;
+	height: 96px;
+	object-fit: cover;
+	width: 96px;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-avatar {
+	align-items: center;
+	background: linear-gradient(135deg, #1a1a2e, #0f3460);
+	border-radius: 50%;
+	color: #fff;
+	display: flex;
+	font-size: 1.4rem;
+	font-weight: 700;
+	height: 96px;
+	justify-content: center;
+	margin-bottom: 1.25rem;
+	width: 96px;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-name {
+	font-size: 1.1rem;
+	font-weight: 700;
+	margin-bottom: 0.2rem;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-title {
+	color: #6366f1;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	margin-bottom: 0.875rem;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-bio {
+	color: #6b7280;
+	font-size: 0.875rem;
+	line-height: 1.6;
+	margin: 0;
+	text-align: left;
+}

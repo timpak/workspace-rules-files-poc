@@ -1,0 +1,265 @@
+/* DevCon 2026 — Global Theme
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+/* --- Design tokens ----------------------------------------- */
+:root {
+  --dc-primary:       #0f172a;
+  --dc-primary-light: #1e293b;
+  --dc-accent:        #6366f1;
+  --dc-accent-light:  #818cf8;
+  --dc-accent-bg:     #eef2ff;
+  --dc-cyan:          #22d3ee;
+  --dc-bg:            #f1f5f9;
+  --dc-surface:       #ffffff;
+  --dc-border:        #e2e8f0;
+  --dc-text:          #1e293b;
+  --dc-text-muted:    #64748b;
+  --dc-text-on-dark:  #f8fafc;
+  --dc-radius:        10px;
+  --dc-shadow:        0 1px 4px rgba(0, 0, 0, 0.06);
+  --dc-shadow-hover:  0 8px 28px rgba(0, 0, 0, 0.13);
+  --dc-transition:    0.2s ease;
+}
+
+/* --- Base -------------------------------------------------- */
+body {
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--dc-bg);
+  color: var(--dc-text);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+a {
+  color: var(--dc-accent);
+  text-decoration: none;
+  transition: color var(--dc-transition);
+}
+
+a:hover {
+  color: var(--dc-accent-light);
+}
+
+/* --- Header / navigation ----------------------------------- */
+#banner,
+#banner .navbar,
+#banner .navbar-classic,
+.navbar.navbar-default {
+  background: var(--dc-primary) !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+#banner {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Hide default Liferay logo image and site name text */
+#banner .logo img,
+#banner .logo-md img {
+  display: none !important;
+}
+
+#banner .logo h1,
+#banner .logo .h1,
+#banner .logo .h2,
+#banner h1.text-dark,
+#banner .h2.text-dark {
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+/* Vyndrel logo wordmark injected as ::before on the logo anchor */
+#banner a.logo {
+  align-items: center !important;
+  text-decoration: none !important;
+}
+
+#banner a.logo::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 36' fill='none'%3E%3Crect x='0' y='4' width='28' height='28' rx='6' fill='%236366f1'/%3E%3Cpath d='M7 8 L14 26 L21 8' stroke='white' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Ctext x='38' y='27' font-family='Inter%2Csystem-ui%2Csans-serif' font-size='19' font-weight='800' fill='white' letter-spacing='-0.5'%3EVYNDREL%3C/text%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: contain;
+  content: '';
+  display: inline-block;
+  height: 36px;
+  width: 160px;
+}
+
+
+/* Nav links — include navbar-light specificity since Classic theme uses it */
+#navigation .nav-item .nav-link,
+#banner .navbar-light .navbar-nav .nav-link,
+#banner .navbar-nav .nav-item .nav-link,
+#banner .nav-item .nav-link {
+  border-radius: 6px !important;
+  color: rgba(248, 250, 252, 0.80) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  padding: 0.375rem 0.875rem !important;
+  transition: background var(--dc-transition), color var(--dc-transition) !important;
+}
+
+#navigation .nav-item .nav-link:hover,
+#banner .navbar-light .navbar-nav .nav-link:hover,
+#banner .navbar-nav .nav-item .nav-link:hover,
+#banner .nav-item .nav-link:hover {
+  background: rgba(255, 255, 255, 0.09) !important;
+  color: #fff !important;
+}
+
+#navigation .nav-item.active .nav-link,
+#banner .nav-item.active .nav-link,
+#banner .nav-item.selected .nav-link {
+  color: var(--dc-accent-light) !important;
+}
+
+/* Sign-in — Classic theme renders this as a <button> in newer DXP */
+#banner .sign-in a,
+#banner .sign-in button,
+.portlet-sign-in a,
+.portlet-sign-in button {
+  background: var(--dc-accent) !important;
+  border: none !important;
+  border-radius: 6px !important;
+  color: #fff !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  padding: 0.375rem 1rem !important;
+  transition: background var(--dc-transition), transform var(--dc-transition) !important;
+}
+
+#banner .sign-in a:hover,
+#banner .sign-in button:hover,
+.portlet-sign-in a:hover,
+.portlet-sign-in button:hover {
+  background: var(--dc-accent-light) !important;
+  color: #fff !important;
+  transform: translateY(-1px) !important;
+}
+
+/* --- Page content ------------------------------------------ */
+#content {
+  background: transparent;
+  min-height: calc(100vh - 128px);
+}
+
+.portlet-boundary,
+.portlet-column-content {
+  background: transparent;
+}
+
+/* --- Footer ------------------------------------------------ */
+#footer {
+  background: var(--dc-primary) !important;
+  border-top: 2px solid var(--dc-accent) !important;
+  color: rgba(248, 250, 252, 0.70) !important;
+  font-family: 'Inter', sans-serif !important;
+  padding: 3rem 2rem 2.5rem !important;
+  text-align: center !important;
+}
+
+/* Hide the default "Powered by Liferay" text from the Classic theme template */
+#footer .container {
+  display: none !important;
+}
+
+/* Inject DevCon branding in its place */
+#footer::before {
+  color: #fff !important;
+  content: "DevCon 2026";
+  display: block !important;
+  font-size: 1.25rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.04em !important;
+  margin-bottom: 0.5rem !important;
+}
+
+#footer::after {
+  color: rgba(248, 250, 252, 0.55) !important;
+  content: "June 15\2013 16, 2026  \00B7  San Francisco, CA  \00B7  \00A9 2026 DevCon. All rights reserved.";
+  display: block !important;
+  font-size: 0.8125rem !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* --- Hero refinement --------------------------------------- */
+#wrapper .devcon-hero-wrapper {
+  background: linear-gradient(135deg, #0f172a 0%, #312e81 55%, #1e1b4b 100%) !important;
+}
+
+/* --- Session cards ----------------------------------------- */
+#wrapper .devcon-sessions-wrapper {
+  background: transparent;
+}
+
+#wrapper .devcon-sessions-wrapper .devcon-sessions-title,
+#wrapper .devcon-sessions-wrapper .devcon-sessions-subtitle {
+  font-family: 'Inter', sans-serif;
+}
+
+#wrapper .devcon-sessions-wrapper .devcon-sessions-title {
+  letter-spacing: -0.03em;
+}
+
+#wrapper .devcon-sessions-wrapper .devcon-session-card {
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-border);
+  border-radius: var(--dc-radius);
+  box-shadow: var(--dc-shadow);
+  transition: box-shadow var(--dc-transition), transform var(--dc-transition);
+}
+
+#wrapper .devcon-sessions-wrapper .devcon-session-card:hover {
+  box-shadow: var(--dc-shadow-hover);
+  transform: translateY(-3px);
+}
+
+#wrapper .devcon-sessions-wrapper .devcon-session-card-tag {
+  background: var(--dc-accent-bg);
+  color: var(--dc-accent);
+}
+
+/* --- Speaker cards ----------------------------------------- */
+#wrapper .devcon-speakers-wrapper {
+  background: transparent;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speakers-title {
+  letter-spacing: -0.03em;
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-card {
+  background: var(--dc-surface);
+  border: 1px solid var(--dc-border);
+  border-radius: var(--dc-radius);
+  box-shadow: var(--dc-shadow);
+  transition: box-shadow var(--dc-transition), transform var(--dc-transition);
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-card:hover {
+  box-shadow: var(--dc-shadow-hover);
+  transform: translateY(-3px);
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-avatar {
+  background: linear-gradient(135deg, var(--dc-primary), #312e81);
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-title {
+  color: var(--dc-accent);
+}
+
+#wrapper .devcon-speakers-wrapper .devcon-speaker-bio {
+  color: var(--dc-text-muted);
+}

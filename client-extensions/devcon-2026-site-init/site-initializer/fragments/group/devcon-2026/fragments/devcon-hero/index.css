@@ -1,0 +1,74 @@
+#wrapper .devcon-hero-wrapper {
+	align-items: center;
+	background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+	color: #fff;
+	display: flex;
+	justify-content: center;
+	min-height: 70vh;
+	padding: 4rem 2rem;
+	text-align: center;
+}
+
+#wrapper .devcon-hero-wrapper .devcon-hero-inner {
+	max-width: 720px;
+}
+
+#wrapper .devcon-hero-wrapper .devcon-hero-badge {
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	border-radius: 999px;
+	display: inline-block;
+	font-size: 0.8rem;
+	letter-spacing: 0.08em;
+	margin-bottom: 1.5rem;
+	padding: 0.4rem 1.2rem;
+	text-transform: uppercase;
+}
+
+#wrapper .devcon-hero-wrapper .devcon-hero-title {
+	color: #fff;
+	font-size: clamp(2.5rem, 6vw, 5rem);
+	font-weight: 800;
+	line-height: 1.1;
+	margin-bottom: 1rem;
+}
+
+#wrapper .devcon-hero-wrapper .devcon-hero-tagline {
+	font-size: 1.2rem;
+	line-height: 1.6;
+	margin-bottom: 2.5rem;
+	opacity: 0.8;
+}
+
+#wrapper .devcon-hero-wrapper .devcon-hero-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	justify-content: center;
+}
+
+#wrapper .devcon-hero-wrapper .devcon-hero-btn {
+	border-radius: 6px;
+	display: inline-block;
+	font-size: 1rem;
+	font-weight: 600;
+	padding: 0.875rem 2rem;
+	text-decoration: none;
+	transition: opacity 0.2s;
+}
+
+#wrapper .devcon-hero-wrapper .devcon-hero-btn:hover {
+	opacity: 0.85;
+	text-decoration: none;
+}
+
+#wrapper .devcon-hero-wrapper .devcon-hero-btn-primary {
+	background: #e94560;
+	color: #fff;
+}
+
+#wrapper .devcon-hero-wrapper .devcon-hero-btn-secondary {
+	background: rgba(255, 255, 255, 0.12);
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	color: #fff;
+}

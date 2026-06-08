@@ -1,0 +1,18 @@
+{
+	"friendlyURL": "/sessions",
+	"hidden": false,
+	"name": "Sessions",
+	"name_i18n": {
+		"en_US": "Sessions"
+	},
+	"permissions": [
+		{
+			"actionIds": ["VIEW"],
+			"roleName": "Guest",
+			"scope": 4
+		}
+	],
+	"private": false,
+	"system": false,
+	"type": "Content"
+}
