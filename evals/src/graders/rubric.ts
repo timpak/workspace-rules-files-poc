@@ -1,43 +1,71 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 const JUDGE_MODEL = process.env.JUDGE_MODEL ?? "sonnet";
 const JUDGE_TIMEOUT_MS = 120_000;
 
-export type RubricResult = {
-  key: string;
-  score: number;
-  comment: string;
+export type CriterionResult = {
+  id: string;
   passed: boolean;
+  reasoning: string;
 };
 
-type JudgeOutput = { score: number; reasoning: string };
+export type RubricResult = {
+  key: string;
+  rubricSha256: string;
+  criteria: CriterionResult[];
+};
 
-function parseJudgeText(text: string): JudgeOutput {
+export function loadRubric(rubricPath: string): { content: string; sha256: string } {
+  const content = readFileSync(rubricPath, "utf8");
+  const sha256 = createHash("sha256").update(content).digest("hex");
+  return { content, sha256 };
+}
+
+type JudgeOutput = { criteria: CriterionResult[] };
+
+function parseJudgeText(text: string, expectedIds: string[]): JudgeOutput {
   const tryParse = (s: string): JudgeOutput | null => {
+    let obj: unknown;
     try {
-      const obj = JSON.parse(s);
-      if (typeof obj?.score === "number" && typeof obj?.reasoning === "string") {
-        return { score: obj.score, reasoning: obj.reasoning };
-      }
+      obj = JSON.parse(s);
     } catch {
-      // fall through
+      return null;
     }
-    return null;
+    if (!obj || typeof obj !== "object") return null;
+    const arr = (obj as { criteria?: unknown }).criteria;
+    if (!Array.isArray(arr)) return null;
+    const criteria: CriterionResult[] = [];
+    for (const entry of arr) {
+      if (!entry || typeof entry !== "object") return null;
+      const e = entry as { id?: unknown; passed?: unknown; reasoning?: unknown };
+      if (typeof e.id !== "string" || typeof e.passed !== "boolean" || typeof e.reasoning !== "string") {
+        return null;
+      }
+      criteria.push({ id: e.id, passed: e.passed, reasoning: e.reasoning });
+    }
+    return { criteria };
   };
 
   const direct = tryParse(text.trim());
-  if (direct) return direct;
-
-  const match = text.match(/\{[\s\S]*\}/);
-  if (match) {
-    const parsed = tryParse(match[0]);
-    if (parsed) return parsed;
+  const match = direct ?? (() => {
+    const m = text.match(/\{[\s\S]*\}/);
+    return m ? tryParse(m[0]) : null;
+  })();
+  if (!match) {
+    throw new Error(`Could not parse judge response as JSON: ${text.slice(0, 500)}`);
   }
 
-  throw new Error(`Could not parse judge response as JSON: ${text.slice(0, 500)}`);
+  const returnedIds = new Set(match.criteria.map((c) => c.id));
+  const missing = expectedIds.filter((id) => !returnedIds.has(id));
+  if (missing.length > 0) {
+    throw new Error(`Judge response missing expected criterion IDs: ${missing.join(", ")}`);
+  }
+  return match;
 }
 
-async function runJudge(judgePrompt: string): Promise<JudgeOutput> {
+async function runJudge(judgePrompt: string, expectedIds: string[]): Promise<JudgeOutput> {
   return await new Promise<JudgeOutput>((resolvePromise, rejectPromise) => {
     const args = [
       "-p",
@@ -94,7 +122,7 @@ async function runJudge(judgePrompt: string): Promise<JudgeOutput> {
         if (resultEvent && typeof (resultEvent as { result?: unknown }).result === "string") {
           resultText = (resultEvent as { result: string }).result;
         }
-        resolvePromise(parseJudgeText(resultText));
+        resolvePromise(parseJudgeText(resultText, expectedIds));
       } catch (err) {
         rejectPromise(
           new Error(
@@ -109,13 +137,14 @@ async function runJudge(judgePrompt: string): Promise<JudgeOutput> {
 export async function gradeRubric(params: {
   key: string;
   prompt: string;
-  rubricCriteria: string[];
+  rubricPath: string;
+  criterionIds: string[];
   transcript: string;
-  passThreshold?: number;
 }): Promise<RubricResult> {
-  const { key, prompt, rubricCriteria, transcript, passThreshold = 0.75 } = params;
+  const { key, prompt, rubricPath, criterionIds, transcript } = params;
+  const { content: rubricContent, sha256 } = loadRubric(rubricPath);
 
-  const judgePrompt = `You are evaluating whether an AI coding agent satisfied a rubric on a Liferay-related task. You are scoring the agent's transcript against specific criteria.
+  const judgePrompt = `You are evaluating whether an AI coding agent satisfied a rubric on a Liferay-related task. Score the agent's transcript against each criterion in the rubric below.
 
 <original_user_prompt>
 ${prompt}
@@ -126,20 +155,17 @@ ${transcript}
 </agent_transcript>
 
 <rubric>
-${rubricCriteria.map((c, i) => `${i + 1}. ${c}`).join("\n")}
+${rubricContent}
 </rubric>
 
-Score the agent on a 0.0–1.0 scale equal to the fraction of rubric items clearly satisfied by the transcript. Be strict: if a criterion is ambiguous or unverifiable from the transcript, do not count it as satisfied.
+Evaluate each criterion independently. A criterion passes ONLY if the transcript clearly satisfies it; if it is ambiguous or unverifiable, mark it as failed. The rubric may include anchored pass/borderline/fail examples — use them to calibrate.
 
 Reply with ONLY a single JSON object on one line, no markdown, no code fences, no commentary. Schema:
-{"score": <number between 0 and 1>, "reasoning": "<one paragraph listing each rubric item with satisfied/not-satisfied/unclear and a one-sentence justification>"}`;
+{"criteria": [{"id": "<criterion id>", "passed": <true|false>, "reasoning": "<one sentence>"}, ...]}
 
-  const { score, reasoning } = await runJudge(judgePrompt);
+The "id" values must be exactly: ${criterionIds.map((id) => `"${id}"`).join(", ")}. Return one entry per criterion, in that order.`;
 
-  return {
-    key,
-    score,
-    comment: reasoning,
-    passed: score >= passThreshold,
-  };
+  const { criteria } = await runJudge(judgePrompt, criterionIds);
+
+  return { key, rubricSha256: sha256, criteria };
 }
