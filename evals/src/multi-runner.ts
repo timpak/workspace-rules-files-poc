@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import type { GradeContext } from "./evals/types.js";
+import type { FailureBucket, GradeContext } from "./evals/types.js";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evals } from "./evals/index.js";
@@ -14,9 +14,9 @@ type IterRecord = {
   iter: number;
   startedAt: string;
   passed: boolean;
-  score: number;
   comment: string;
   durationMs: number;
+  failureBucket?: FailureBucket;
   agentExit: number | null;
   agentTimedOut: boolean;
   agentModel: string | null;
@@ -72,7 +72,6 @@ function fmtMs(ms: number): string {
 function summarize(records: IterRecord[]): {
   passRate: number;
   passCount: number;
-  meanScore: number;
   meanDurationMs: number;
   minDurationMs: number;
   maxDurationMs: number;
@@ -81,7 +80,6 @@ function summarize(records: IterRecord[]): {
   const n = records.length;
   const passCount = records.filter((r) => r.passed).length;
   const passRate = passCount / n;
-  const meanScore = records.reduce((a, r) => a + r.score, 0) / n;
   const durations = records.map((r) => r.durationMs);
   const meanDur = durations.reduce((a, d) => a + d, 0) / n;
   const variance =
@@ -89,7 +87,6 @@ function summarize(records: IterRecord[]): {
   return {
     passRate,
     passCount,
-    meanScore,
     meanDurationMs: meanDur,
     minDurationMs: Math.min(...durations),
     maxDurationMs: Math.max(...durations),
@@ -131,9 +128,9 @@ async function runIteration(
       result = {
         id: evalCase.id,
         passed: false,
-        score: 0,
         comment: "Agent timed out before completing the task.",
         durationMs: driver.durationMs,
+        failureBucket: "stalled",
       };
     } else {
       result = await evalCase.grade(driver, ctx);
@@ -142,9 +139,9 @@ async function runIteration(
     result = {
       id: evalCase.id,
       passed: false,
-      score: 0,
       comment: `Eval threw: ${err instanceof Error ? err.message : String(err)}`,
       durationMs: 0,
+      failureBucket: "unknown",
     };
   } finally {
     if (evalCase.teardown) {
@@ -160,9 +157,9 @@ async function runIteration(
     iter,
     startedAt,
     passed: result.passed,
-    score: result.score,
     comment: result.comment,
     durationMs: result.durationMs,
+    failureBucket: result.failureBucket,
     agentExit,
     agentTimedOut,
     agentModel,
@@ -201,7 +198,7 @@ async function main(): Promise<void> {
     records.push(rec);
     const flag = rec.passed ? "PASS" : "FAIL";
     console.log(
-      `${flag} score=${rec.score.toFixed(2)} dur=${fmtMs(rec.durationMs)} exit=${rec.agentExit}${rec.agentTimedOut ? " TIMEOUT" : ""}`
+      `${flag} dur=${fmtMs(rec.durationMs)} exit=${rec.agentExit}${rec.agentTimedOut ? " TIMEOUT" : ""}${rec.failureBucket ? ` bucket=${rec.failureBucket}` : ""}`
     );
     if (!rec.passed) console.log(`  ${rec.comment}`);
     writeFileSync(resolve(runDir, `iter-${String(i).padStart(2, "0")}.json`), JSON.stringify(rec, null, 2));
@@ -226,7 +223,6 @@ async function main(): Promise<void> {
 
   console.log("\n=== Summary ===");
   console.log(`Pass rate:       ${summary.passCount}/${iterations} (${(summary.passRate * 100).toFixed(1)}%)`);
-  console.log(`Mean score:      ${summary.meanScore.toFixed(3)}`);
   console.log(`Duration:        mean=${fmtMs(summary.meanDurationMs)} min=${fmtMs(summary.minDurationMs)} max=${fmtMs(summary.maxDurationMs)} stddev=${fmtMs(summary.stdDevDurationMs)}`);
   console.log(`Results dir:     ${runDir}`);
 

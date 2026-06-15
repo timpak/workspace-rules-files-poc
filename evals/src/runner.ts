@@ -32,9 +32,9 @@ async function runOne(evalCase: EvalCase): Promise<EvalResult> {
       result = {
         id: evalCase.id,
         passed: false,
-        score: 0,
         comment: "Agent timed out before completing the task.",
         durationMs: driver.durationMs,
+        failureBucket: "stalled",
       };
     } else {
       console.log("grading...");
@@ -44,9 +44,9 @@ async function runOne(evalCase: EvalCase): Promise<EvalResult> {
     result = {
       id: evalCase.id,
       passed: false,
-      score: 0,
       comment: `Eval threw: ${err instanceof Error ? err.message : String(err)}`,
       durationMs: 0,
+      failureBucket: "unknown",
     };
   } finally {
     if (evalCase.teardown) {
@@ -58,7 +58,7 @@ async function runOne(evalCase: EvalCase): Promise<EvalResult> {
     }
   }
 
-  console.log(`  result: ${result.passed ? "PASS" : "FAIL"} score=${result.score.toFixed(2)}`);
+  console.log(`  result: ${result.passed ? "PASS" : "FAIL"}${result.failureBucket ? ` bucket=${result.failureBucket}` : ""}`);
   console.log(`  ${result.comment}`);
   return result;
 }
@@ -89,7 +89,7 @@ async function main(): Promise<void> {
   console.log("\n=== Summary ===");
   for (const r of results) {
     console.log(
-      `${r.passed ? "PASS" : "FAIL"}  ${r.id}  score=${r.score.toFixed(2)}  ${fmtMs(r.durationMs)}`
+      `${r.passed ? "PASS" : "FAIL"}  ${r.id}  ${fmtMs(r.durationMs)}${r.failureBucket ? `  bucket=${r.failureBucket}` : ""}`
     );
   }
 
