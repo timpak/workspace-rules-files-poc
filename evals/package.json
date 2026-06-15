@@ -1,0 +1,16 @@
+{
+  "name": "workspace-rules-evals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Capability evals for the workspace-rules-files skills.",
+  "scripts": {
+    "test": "tsx src/runner.ts",
+    "test:multi": "tsx src/multi-runner.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
