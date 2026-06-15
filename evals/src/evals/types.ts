@@ -34,6 +34,7 @@ export type EvalCase = {
   prompt: string;
   tier: Tier;
   passRule: PassRule;
+  rubricPath?: string;
   setup?: () => Promise<void>;
   teardown?: () => Promise<void>;
   grade: (driver: DriverResult, ctx?: GradeContext) => Promise<EvalResult>;

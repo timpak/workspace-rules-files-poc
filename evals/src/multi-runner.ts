@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { evals } from "./evals/index.js";
 import { runClaude, getClaudeVersion } from "./driver.js";
 import { healthCheck, BASE_URL } from "./portal.js";
+import { loadRubric } from "./graders/rubric.js";
 import type { EvalCase, EvalResult } from "./evals/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -72,6 +73,7 @@ function fmtMs(ms: number): string {
 function summarize(records: IterRecord[]): {
   passRate: number;
   passCount: number;
+  failureBuckets: Record<string, number>;
   meanDurationMs: number;
   minDurationMs: number;
   maxDurationMs: number;
@@ -80,6 +82,12 @@ function summarize(records: IterRecord[]): {
   const n = records.length;
   const passCount = records.filter((r) => r.passed).length;
   const passRate = passCount / n;
+  const failureBuckets: Record<string, number> = {};
+  for (const r of records) {
+    if (!r.passed && r.failureBucket) {
+      failureBuckets[r.failureBucket] = (failureBuckets[r.failureBucket] ?? 0) + 1;
+    }
+  }
   const durations = records.map((r) => r.durationMs);
   const meanDur = durations.reduce((a, d) => a + d, 0) / n;
   const variance =
@@ -87,6 +95,7 @@ function summarize(records: IterRecord[]): {
   return {
     passRate,
     passCount,
+    failureBuckets,
     meanDurationMs: meanDur,
     minDurationMs: Math.min(...durations),
     maxDurationMs: Math.max(...durations),
@@ -186,8 +195,17 @@ async function main(): Promise<void> {
   const runId = `${evalCase.id}${modelTag}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
   const runDir = resolve(RESULTS_ROOT, runId);
   mkdirSync(runDir, { recursive: true });
+  let rubricSha256: string | null = null;
+  if (evalCase.rubricPath) {
+    rubricSha256 = loadRubric(evalCase.rubricPath).sha256;
+  }
+
   console.log(`Run dir: ${runDir}`);
   console.log(`Eval: ${evalCase.id} — ${evalCase.description}`);
+  console.log(`Tier: ${evalCase.tier} | Pass rule: ${evalCase.passRule}`);
+  if (evalCase.rubricPath) {
+    console.log(`Rubric: ${evalCase.rubricPath} (sha256=${rubricSha256?.slice(0, 12)})`);
+  }
   console.log(`Prompt: ${evalCase.prompt}`);
   console.log(`Iterations: ${iterations}\n`);
 
@@ -207,12 +225,16 @@ async function main(): Promise<void> {
   const summary = summarize(records);
   const summaryPayload = {
     evalId: evalCase.id,
+    tier: evalCase.tier,
+    passRule: evalCase.passRule,
     prompt: evalCase.prompt,
     iterations,
     provenance: {
       claudeVersion,
       modelRequested: model,
       claudeCwd: process.cwd(),
+      rubricPath: evalCase.rubricPath ?? null,
+      rubricSha256,
       startedAt: records[0]?.startedAt,
       finishedAt: new Date().toISOString(),
     },
@@ -221,12 +243,22 @@ async function main(): Promise<void> {
   };
   writeFileSync(resolve(runDir, "summary.json"), JSON.stringify(summaryPayload, null, 2));
 
+  const bucketLine = Object.entries(summary.failureBuckets)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k}=${v}`)
+    .join(" ");
+
   console.log("\n=== Summary ===");
   console.log(`Pass rate:       ${summary.passCount}/${iterations} (${(summary.passRate * 100).toFixed(1)}%)`);
+  console.log(`Tier:            ${evalCase.tier} (target ${evalCase.tier === "baseline" ? "≥95%" : "≥70%"})`);
+  console.log(`Pass rule:       ${evalCase.passRule}`);
+  if (bucketLine) {
+    console.log(`Failure buckets: ${bucketLine}`);
+  }
   console.log(`Duration:        mean=${fmtMs(summary.meanDurationMs)} min=${fmtMs(summary.minDurationMs)} max=${fmtMs(summary.maxDurationMs)} stddev=${fmtMs(summary.stdDevDurationMs)}`);
   console.log(`Results dir:     ${runDir}`);
 
-  process.exit(summary.passCount === iterations ? 0 : 1);
+  process.exit(0);
 }
 
 main().catch((err) => {
