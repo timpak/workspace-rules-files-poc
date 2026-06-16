@@ -179,4 +179,138 @@ export async function deleteSiteByErc(erc: string): Promise<boolean> {
   return true;
 }
 
+// ---------------------------------------------------------------------------
+// Site-pages helpers (manage-pages-baseline)
+// ---------------------------------------------------------------------------
+
+export type SitePageSummary = {
+  id: number;
+  friendlyUrlPath?: string;
+  friendlyUrlPath_i18n?: Record<string, string>;
+  name?: string;
+  externalReferenceCode?: string;
+};
+
+export async function listSitePages(siteErc: string): Promise<SitePageSummary[]> {
+  const items = await fetchAllIds(
+    `/o/headless-admin-site/v1.0/sites/${encodeURIComponent(siteErc)}/site-pages`
+  );
+  return items as unknown as SitePageSummary[];
+}
+
+export async function deleteSitePage(pageId: number): Promise<boolean> {
+  const res = await liferayFetch(
+    `/o/headless-admin-site/v1.0/site-pages/${pageId}`,
+    { method: "DELETE" }
+  );
+  if (res.status === 404) return false;
+  if (!res.ok) {
+    throw new Error(`deleteSitePage(${pageId}) HTTP ${res.status}: ${await res.text()}`);
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Object-actions helpers (manage-object-logic-baseline)
+// ---------------------------------------------------------------------------
+
+export type ObjectActionSummary = {
+  id: number;
+  active?: boolean;
+  name?: string;
+  objectActionExecutorKey?: string;
+  objectActionTriggerKey?: string;
+};
+
+export async function listObjectActions(objectDefId: number): Promise<ObjectActionSummary[]> {
+  const items = await fetchAllIds(
+    `/o/object-admin/v1.0/object-definitions/${objectDefId}/object-actions`
+  );
+  return items as unknown as ObjectActionSummary[];
+}
+
+// ---------------------------------------------------------------------------
+// User notifications helpers (manage-object-logic-baseline)
+// ---------------------------------------------------------------------------
+
+export type UserNotificationSummary = { id: number; [key: string]: unknown };
+
+export async function listMyUserNotifications(): Promise<UserNotificationSummary[]> {
+  const items = await fetchAllIds(
+    "/o/headless-admin-user/v1.0/my-user-account/user-notifications"
+  );
+  return items as unknown as UserNotificationSummary[];
+}
+
+// ---------------------------------------------------------------------------
+// Commerce catalog helpers (commerce-catalogs-baseline)
+// ---------------------------------------------------------------------------
+
+export type CommerceProductSummary = {
+  id: number;
+  name?: string;
+  catalogId?: number;
+  catalogExternalReferenceCode?: string;
+  externalReferenceCode?: string;
+  [key: string]: unknown;
+};
+
+export type CommerceSkuSummary = {
+  id: number;
+  price?: number;
+  sku?: string;
+  [key: string]: unknown;
+};
+
+export async function listCommerceProducts(): Promise<CommerceProductSummary[]> {
+  const items = await fetchAllIds(
+    "/o/headless-commerce-admin-catalog/v1.0/products"
+  );
+  return items as unknown as CommerceProductSummary[];
+}
+
+export async function listCommerceSkus(productId: number): Promise<CommerceSkuSummary[]> {
+  const items = await fetchAllIds(
+    `/o/headless-commerce-admin-catalog/v1.0/products/${productId}/skus`
+  );
+  return items as unknown as CommerceSkuSummary[];
+}
+
+export async function deleteCommerceProduct(productId: number): Promise<boolean> {
+  const res = await liferayFetch(
+    `/o/headless-commerce-admin-catalog/v1.0/products/${productId}`,
+    { method: "DELETE" }
+  );
+  if (res.status === 404) return false;
+  if (!res.ok) {
+    throw new Error(`deleteCommerceProduct(${productId}) HTTP ${res.status}: ${await res.text()}`);
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Object definition helpers (manage-objects-baseline + manage-object-logic-baseline)
+// ---------------------------------------------------------------------------
+
+export type ObjectFieldSummary = {
+  name?: string;
+  businessType?: string;
+  type?: string;
+  listTypeDefinitionId?: number;
+  required?: boolean;
+  [key: string]: unknown;
+};
+
+export async function listObjectDefinitions(): Promise<ObjectDefinition[]> {
+  const items = await fetchAllIds("/o/object-admin/v1.0/object-definitions");
+  return items as unknown as ObjectDefinition[];
+}
+
+export async function listObjectFields(objectDefId: number): Promise<ObjectFieldSummary[]> {
+  const items = await fetchAllIds(
+    `/o/object-admin/v1.0/object-definitions/${objectDefId}/object-fields`
+  );
+  return items as unknown as ObjectFieldSummary[];
+}
+
 export { BASE_URL };
