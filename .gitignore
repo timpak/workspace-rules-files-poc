@@ -26,3 +26,4 @@
 /plugins-sdk/lib
 test-results
 .mcp.json
+.eval-stash-manifest
