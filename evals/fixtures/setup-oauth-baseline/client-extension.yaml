@@ -1,0 +1,7 @@
+promo-discount-action:
+  name: Promo Discount Action
+  description: Apply a percentage discount to related Promotion entries when triggered.
+  objectDefinitionExternalReferenceCode: promo-discount-action-objdef
+  parameters:
+    url: ${configuration.baseURL}/promo-discount
+  type: objectAction
