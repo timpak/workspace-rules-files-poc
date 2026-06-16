@@ -35,6 +35,8 @@ export type EvalCase = {
   tier: Tier;
   passRule: PassRule;
   rubricPath?: string;
+  /** Override the default 5-minute agent driver timeout for tasks that span multiple skills. */
+  agentTimeoutMs?: number;
   setup?: () => Promise<void>;
   teardown?: () => Promise<void>;
   grade: (driver: DriverResult, ctx?: GradeContext) => Promise<EvalResult>;

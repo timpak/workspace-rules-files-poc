@@ -26,7 +26,9 @@ async function runOne(evalCase: EvalCase): Promise<EvalResult> {
   let result: EvalResult;
   try {
     console.log("invoking claude -p ...");
-    const driver = await runClaude(evalCase.prompt);
+    const driverOpts: { timeoutMs?: number } = {};
+    if (evalCase.agentTimeoutMs) driverOpts.timeoutMs = evalCase.agentTimeoutMs;
+    const driver = await runClaude(evalCase.prompt, driverOpts);
     console.log(`  agent exit=${driver.exitCode} duration=${fmtMs(driver.durationMs)} timedOut=${driver.timedOut}`);
     if (driver.timedOut) {
       result = {

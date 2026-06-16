@@ -124,7 +124,10 @@ async function runIteration(
   let agentStdoutTail: string | undefined;
 
   try {
-    const driver = await runClaude(evalCase.prompt, model ? { model } : {});
+    const driverOpts: { timeoutMs?: number; model?: string } = {};
+    if (model) driverOpts.model = model;
+    if (evalCase.agentTimeoutMs) driverOpts.timeoutMs = evalCase.agentTimeoutMs;
+    const driver = await runClaude(evalCase.prompt, driverOpts);
     agentExit = driver.exitCode;
     agentTimedOut = driver.timedOut;
     agentModel = driver.model;
