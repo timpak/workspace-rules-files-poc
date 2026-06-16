@@ -167,7 +167,9 @@ liferay.oauth.application.external.reference.code=<workspace-id>-oauth
 ```yaml
 <workspace-id>-site-init:
   name: <Site Name> Initializer
-  oAuthApplicationHeadlessServerExternalReferenceCode: <workspace-id>-site-oauth
+  oAuthApplicationHeadlessServer: <workspace-id>-site-oauth
+  siteExternalReferenceCode: <site-erc>
+  siteName: <Site Name>
   type: siteInitializer
 
 <workspace-id>-site-oauth:
@@ -180,6 +182,8 @@ liferay.oauth.application.external.reference.code=<workspace-id>-oauth
     - Liferay.Headless.Admin.User.everything
   type: oAuthApplicationHeadlessServer
 ```
+
+`siteExternalReferenceCode` uniquely identifies the site so re-running the initializer updates it rather than creating a duplicate. Derive it from the site name in kebab-case.
 
 Populate `site-initializer/` per `rules/site-initializer-format.md`.
 
