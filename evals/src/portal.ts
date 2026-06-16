@@ -156,4 +156,27 @@ export async function cleanupNewArtifacts(baseline: PortalSnapshot): Promise<Cle
   return report;
 }
 
+export type SiteSummary = { id: number; externalReferenceCode?: string; descriptiveName?: string };
+
+export async function getSiteByErc(erc: string): Promise<SiteSummary | null> {
+  const res = await liferayFetch(
+    `/o/headless-admin-site/v1.0/sites/${encodeURIComponent(erc)}`
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`getSiteByErc(${erc}) HTTP ${res.status}`);
+  return (await res.json()) as SiteSummary;
+}
+
+export async function deleteSiteByErc(erc: string): Promise<boolean> {
+  const res = await liferayFetch(
+    `/o/headless-admin-site/v1.0/sites/${encodeURIComponent(erc)}`,
+    { method: "DELETE" }
+  );
+  if (res.status === 404) return false;
+  if (!res.ok) {
+    throw new Error(`deleteSiteByErc(${erc}) HTTP ${res.status}: ${await res.text()}`);
+  }
+  return true;
+}
+
 export { BASE_URL };
