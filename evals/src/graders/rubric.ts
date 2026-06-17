@@ -2,7 +2,6 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 
-const JUDGE_MODEL = process.env.JUDGE_MODEL ?? "sonnet";
 const JUDGE_TIMEOUT_MS = 120_000;
 
 export type CriterionResult = {
@@ -66,18 +65,28 @@ function parseJudgeText(text: string, expectedIds: string[]): JudgeOutput {
 }
 
 async function runJudge(judgePrompt: string, expectedIds: string[]): Promise<JudgeOutput> {
+  const isGemini = process.env.EVALS_ENGINE === "gemini";
+  const defaultJudgeModel = isGemini ? "auto" : "sonnet";
+  const judgeModel = process.env.JUDGE_MODEL ?? defaultJudgeModel;
+
   return await new Promise<JudgeOutput>((resolvePromise, rejectPromise) => {
     const args = [
       "-p",
       judgePrompt,
       "--model",
-      JUDGE_MODEL,
+      judgeModel,
       "--output-format",
       "stream-json",
-      "--verbose",
-      "--dangerously-skip-permissions",
     ];
-    const child = spawn("claude", args, { stdio: ["ignore", "pipe", "pipe"] });
+
+    if (isGemini) {
+      args.push("--yolo", "--skip-trust");
+    } else {
+      args.push("--verbose", "--dangerously-skip-permissions");
+    }
+
+    const executable = isGemini ? "gemini" : "claude";
+    const child = spawn(executable, args, { stdio: ["ignore", "pipe", "pipe"] });
 
     let stdout = "";
     let stderr = "";
@@ -116,12 +125,29 @@ async function runJudge(judgePrompt: string, expectedIds: string[]): Promise<Jud
             // ignore malformed lines
           }
         }
-        const resultEvent = [...events].reverse().find(
-          (e) => e && typeof e === "object" && (e as { type?: string }).type === "result"
-        );
-        if (resultEvent && typeof (resultEvent as { result?: unknown }).result === "string") {
-          resultText = (resultEvent as { result: string }).result;
+
+        if (isGemini) {
+          let response = "";
+          for (const ev of events) {
+            if (ev && typeof ev === "object") {
+              const geminiEv = ev as { type?: string; role?: string; content?: string };
+              if (geminiEv.type === "message" && geminiEv.role === "assistant" && geminiEv.content) {
+                response += geminiEv.content;
+              }
+            }
+          }
+          if (response) {
+            resultText = response;
+          }
+        } else {
+          const resultEvent = [...events].reverse().find(
+            (e) => e && typeof e === "object" && (e as { type?: string }).type === "result"
+          );
+          if (resultEvent && typeof (resultEvent as { result?: unknown }).result === "string") {
+            resultText = (resultEvent as { result: string }).result;
+          }
         }
+
         resolvePromise(parseJudgeText(resultText, expectedIds));
       } catch (err) {
         rejectPromise(

@@ -2,7 +2,7 @@ import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evals } from "./evals/index.js";
-import { runClaude, getClaudeVersion } from "./driver.js";
+import { runAgent, getAgentVersion } from "./driver.js";
 import { healthCheck, BASE_URL } from "./portal.js";
 import { checkRequiredFlags } from "./preflight.js";
 import { loadRubric } from "./graders/rubric.js";
@@ -38,6 +38,7 @@ type ParsedArgs = {
   iterations: number;
   model: string | null;
   release: string;
+  engine: "claude" | "gemini";
 };
 
 function parseArgs(argv: string[]): ParsedArgs {
@@ -46,6 +47,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   let iterations = 1;
   let release: string | null = null;
   let all = false;
+  let engine: "claude" | "gemini" | null = null;
 
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
@@ -66,10 +68,34 @@ function parseArgs(argv: string[]): ParsedArgs {
       release = a.slice("--release=".length);
     } else if (a === "--all") {
       all = true;
+    } else if (a === "--engine") {
+      const parsedEngine = argv[i + 1];
+      if (parsedEngine === "claude" || parsedEngine === "gemini") {
+        engine = parsedEngine;
+      } else {
+        console.error(`Invalid engine: ${parsedEngine}. Must be 'claude' or 'gemini'.`);
+        process.exit(2);
+      }
+      i += 1;
+    } else if (a.startsWith("--engine=")) {
+      const parsedEngine = a.slice("--engine=".length);
+      if (parsedEngine === "claude" || parsedEngine === "gemini") {
+        engine = parsedEngine;
+      } else {
+        console.error(`Invalid engine: ${parsedEngine}. Must be 'claude' or 'gemini'.`);
+        process.exit(2);
+      }
     } else {
       positional.push(a);
     }
   }
+
+  // Fallback to process.env.EVALS_ENGINE or default to claude
+  const resolvedEngine: "claude" | "gemini" =
+    engine ??
+    ((process.env.EVALS_ENGINE === "claude" || process.env.EVALS_ENGINE === "gemini")
+      ? process.env.EVALS_ENGINE
+      : "claude");
 
   if (!release) {
     console.error("--release <tag> is required (e.g. --release 2026.q1)");
@@ -77,7 +103,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   }
   if (!all && positional.length < 1) {
     console.error(
-      "Usage: tsx src/runner.ts (--all | <EVAL_ID> [<EVAL_ID> ...]) --release <tag> [--iters N] [--model <alias>]"
+      "Usage: tsx src/runner.ts (--all | <EVAL_ID> [<EVAL_ID> ...]) --release <tag> [--iters N] [--model <alias>] [--engine claude|gemini]"
     );
     process.exit(2);
   }
@@ -91,6 +117,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     iterations,
     model,
     release,
+    engine: resolvedEngine,
   };
 }
 
@@ -230,7 +257,7 @@ async function runIteration(
     const driverOpts: { timeoutMs?: number; model?: string } = {};
     if (model) driverOpts.model = model;
     if (evalCase.agentTimeoutMs) driverOpts.timeoutMs = evalCase.agentTimeoutMs;
-    const driver = await runClaude(evalCase.prompt, driverOpts);
+    const driver = await runAgent(evalCase.prompt, driverOpts);
     agentExit = driver.exitCode;
     agentTimedOut = driver.timedOut;
     agentModel = driver.model;
@@ -302,7 +329,7 @@ async function runEval(
   evalCase: EvalCase,
   iterations: number,
   model: string | null,
-  claudeVersion: string,
+  agentVersion: string,
   runRoot: string,
   auditPath: string
 ): Promise<EvalSummaryEntry> {
@@ -346,9 +373,10 @@ async function runEval(
     prompt: evalCase.prompt,
     iterations,
     provenance: {
-      claudeVersion,
+      agentVersion,
+      engine: process.env.EVALS_ENGINE,
       modelRequested: model,
-      claudeCwd: process.cwd(),
+      agentCwd: process.cwd(),
       rubricPath: evalCase.rubricPath ?? null,
       rubricSha256,
       startedAt: records[0]?.startedAt,
@@ -391,14 +419,19 @@ async function runEval(
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+  
+  // Set environment variable immediately for driver routing
+  process.env.EVALS_ENGINE = args.engine;
+
   const cases = pickEvals(args);
   const { iterations, model, release } = args;
 
-  const claudeVersion = await getClaudeVersion();
+  const agentVersion = await getAgentVersion();
+  const engineLabel = args.engine === "gemini" ? "Gemini CLI" : "Claude CLI";
 
   console.log(`Release: ${release}`);
   console.log(`Liferay: ${BASE_URL}`);
-  console.log(`Claude CLI: ${claudeVersion}`);
+  console.log(`${engineLabel}: ${agentVersion}`);
   console.log(`Model: ${model ?? "(default — not pinned)"}`);
   console.log("health check...");
   await healthCheck();
@@ -436,7 +469,7 @@ async function main(): Promise<void> {
   writeFileSync(
     auditPath,
     `# Run Audit: ${release} — ${runId}\n\n` +
-    `**Claude CLI:** ${claudeVersion}${modelTag}  \n` +
+    `**${engineLabel}:** ${agentVersion}${modelTag}  \n` +
     `**Evals:** ${cases.map((c) => c.id).join(", ")}  \n` +
     `**Started:** ${new Date().toISOString()}\n\n` +
     `---\n\n`
@@ -448,7 +481,7 @@ async function main(): Promise<void> {
   const evalEntries: EvalSummaryEntry[] = [];
 
   for (const c of cases) {
-    const entry = await runEval(c, iterations, model, claudeVersion, runRoot, auditPath);
+    const entry = await runEval(c, iterations, model, agentVersion, runRoot, auditPath);
     evalEntries.push(entry);
   }
 
@@ -458,7 +491,8 @@ async function main(): Promise<void> {
   const runSummary = {
     release,
     runId,
-    claudeVersion,
+    engine: args.engine,
+    agentVersion,
     modelRequested: model,
     startedAt,
     finishedAt: new Date().toISOString(),

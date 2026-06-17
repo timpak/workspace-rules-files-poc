@@ -1,0 +1,2 @@
+# Hide evaluation framework and rubrics from the agent to prevent test-driven cheating
+evals/
