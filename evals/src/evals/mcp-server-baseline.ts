@@ -98,6 +98,7 @@ export const mcpServerBaseline: EvalCase = {
   tier: "baseline",
   passRule: "strict",
   rubricPath: RUBRIC_PATH,
+  requiredFeatureFlags: ["LPD-63311"],
   setup: hooks.setup,
   teardown: hooks.teardown,
   grade: async (driver): Promise<EvalResult> => {

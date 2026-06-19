@@ -248,7 +248,8 @@ export async function listMyUserNotifications(): Promise<UserNotificationSummary
 
 export type CommerceProductSummary = {
   id: number;
-  name?: string;
+  productId?: number;
+  name?: string | Record<string, string>;
   catalogId?: number;
   catalogExternalReferenceCode?: string;
   externalReferenceCode?: string;

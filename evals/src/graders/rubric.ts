@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const JUDGE_MODEL = process.env.JUDGE_MODEL ?? "sonnet";
 const JUDGE_TIMEOUT_MS = 120_000;
@@ -140,8 +140,9 @@ export async function gradeRubric(params: {
   rubricPath: string;
   criterionIds: string[];
   transcript: string;
+  savePromptTo?: string;
 }): Promise<RubricResult> {
-  const { key, prompt, rubricPath, criterionIds, transcript } = params;
+  const { key, prompt, rubricPath, criterionIds, transcript, savePromptTo } = params;
   const { content: rubricContent, sha256 } = loadRubric(rubricPath);
 
   const judgePrompt = `You are evaluating whether an AI coding agent satisfied a rubric on a Liferay-related task. Score the agent's transcript against each criterion in the rubric below.
@@ -164,6 +165,10 @@ Reply with ONLY a single JSON object on one line, no markdown, no code fences, n
 {"criteria": [{"id": "<criterion id>", "passed": <true|false>, "reasoning": "<one sentence>"}, ...]}
 
 The "id" values must be exactly: ${criterionIds.map((id) => `"${id}"`).join(", ")}. Return one entry per criterion, in that order.`;
+
+  if (savePromptTo) {
+    try { writeFileSync(savePromptTo, judgePrompt); } catch { /* best effort */ }
+  }
 
   const { criteria } = await runJudge(judgePrompt, criterionIds);
 

@@ -13,7 +13,7 @@ import type { EvalCase, EvalResult } from "./types.js";
 
 const ID = "manage-pages-baseline";
 
-const PROMPT = `Add an "About Us" page to our site at /about so people can find our company info.`;
+const PROMPT = `Add an "About Us" page to our default Guest site at /about so people can find our company info.`;
 
 const RUBRIC_PATH = resolve(REPO_ROOT, "evals/rubrics/manage-pages-baseline.md");
 const SITE_ERC = "L_GUEST";
@@ -58,6 +58,7 @@ export const managePagesBaseline: EvalCase = {
   tier: "baseline",
   passRule: "strict",
   rubricPath: RUBRIC_PATH,
+  requiredFeatureFlags: ["LPD-35443"],
   setup: async () => {
     await hooks.setup();
     state.prePageIds = new Set();

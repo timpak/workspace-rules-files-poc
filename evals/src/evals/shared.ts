@@ -111,7 +111,8 @@ export function standardCleanupHooks(options?: { stashDirs?: string[] }): Cleanu
   let workspaceBaseline: WorkspaceSnapshot | null = null;
   let portalBaseline: PortalSnapshot | null = null;
   let stashId: string | null = null;
-  const dirsToStash = options?.stashDirs ?? [];
+  // Default to stashing client-extensions, modules, and themes to keep the workspace pristine
+  const dirsToStash = options?.stashDirs ?? ["client-extensions", "modules", "themes"];
 
   return {
     setup: async () => {

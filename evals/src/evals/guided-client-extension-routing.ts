@@ -4,7 +4,7 @@ import { REPO_ROOT, extractFinalResponse } from "../driver.js";
 import { categorize, type CriterionOutcome } from "../graders/bucket.js";
 import { gradeRubric } from "../graders/rubric.js";
 import { standardCleanupHooks } from "./shared.js";
-import type { EvalCase, EvalResult } from "./types.js";
+import type { EvalCase, EvalResult, GradeContext } from "./types.js";
 
 const ID = "guided-client-extension-routing";
 
@@ -74,7 +74,7 @@ export const guidedClientExtensionRouting: EvalCase = {
     state.preFiles = snapshotScaffoldFiles();
   },
   teardown: hooks.teardown,
-  grade: async (driver): Promise<EvalResult> => {
+  grade: async (driver, ctx?: GradeContext): Promise<EvalResult> => {
     const criteria: CriterionOutcome[] = [];
 
     // C1 — no new files under scaffold dirs.
@@ -84,7 +84,7 @@ export const guidedClientExtensionRouting: EvalCase = {
       if (!state.preFiles.has(f)) newFiles.push(f);
     }
     const c1Pass = newFiles.length === 0;
-    criteria.push({ id: "C1", passed: c1Pass, bucketOnFail: "wrong-skill-invoked" });
+    criteria.push({ id: "C1", passed: c1Pass, bucketOnFail: "wrong-skill-invoked", graderType: "harness" });
 
     // C2 — LLM-judged guidance offer (supporting only).
     const response = extractFinalResponse(driver.transcript).trim();
@@ -117,6 +117,7 @@ export const guidedClientExtensionRouting: EvalCase = {
         rubricPath: RUBRIC_PATH,
         criterionIds: ["C2"],
         transcript: response,
+        savePromptTo: ctx?.judgePromptPath,
       });
       const c2 = judge.criteria.find((c) => c.id === "C2");
       c2Pass = c2?.passed === true;
@@ -124,7 +125,7 @@ export const guidedClientExtensionRouting: EvalCase = {
     } catch (err) {
       c2Reason = `judge error: ${err instanceof Error ? err.message : String(err)}`;
     }
-    criteria.push({ id: "C2", passed: c2Pass, bucketOnFail: "rule-misapplied" });
+    criteria.push({ id: "C2", passed: c2Pass, bucketOnFail: "rule-misapplied", graderType: "llm-judge", reasoning: c2Reason });
 
     // HARD GATE on C1; C2 supporting (bucket disambiguation).
     const passed = c1Pass;

@@ -6,7 +6,6 @@
   "description": "Capability evals for the workspace-rules-files skills.",
   "scripts": {
     "test": "tsx src/runner.ts",
-    "test:multi": "tsx src/multi-runner.ts",
     "calibrate": "tsx src/calibration/runner.ts"
   },
   "devDependencies": {

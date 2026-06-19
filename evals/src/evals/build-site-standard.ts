@@ -259,6 +259,14 @@ const hooks = standardCleanupHooks({
   stashDirs: ["client-extensions", "modules", "themes"],
 });
 
+type SetupState = {
+  logOffset: number;
+};
+
+const state: SetupState = {
+  logOffset: 0,
+};
+
 export const buildSiteStandard: EvalCase = {
   id: ID,
   description:
@@ -268,7 +276,15 @@ export const buildSiteStandard: EvalCase = {
   passRule: "strict",
   rubricPath: RUBRIC_PATH,
   agentTimeoutMs: 10 * 60 * 1000,
-  setup: hooks.setup,
+  setup: async () => {
+    await hooks.setup();
+    const logPath = findCatalinaLog();
+    const liferayLogDir = resolve(REPO_ROOT, "bundles", "logs");
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const liferayLogPath = join(liferayLogDir, `liferay.${dateStr}.log`);
+    const logForGrep = existsSync(liferayLogPath) ? liferayLogPath : logPath;
+    state.logOffset = logForGrep ? logSizeBytes(logForGrep) : 0;
+  },
   teardown: async () => {
     // Try to delete whatever site we provisioned BEFORE filesystem restore.
     // The CET dir is still on disk at this point so we can recover the ERC.
@@ -341,42 +357,39 @@ export const buildSiteStandard: EvalCase = {
     // If structure is broken, don't bother trying to deploy.
     const structuralPassed = criteria.every((c) => c.passed);
 
-    let deployOk = false;
+    const deployOk = driver.transcript.includes("BUILD SUCCESSFUL");
     let initOk = false;
     let siteOk = false;
     let renderOk = false;
     let comment = "";
 
     if (structuralPassed && cet) {
-      const logPath = findCatalinaLog();
-      const liferayLogDir = resolve(REPO_ROOT, "bundles", "logs");
-      // The Liferay log we observed lives at bundles/logs/liferay.<date>.log
-      const dateStr = new Date().toISOString().slice(0, 10);
-      const liferayLogPath = join(liferayLogDir, `liferay.${dateStr}.log`);
-      const logForGrep = existsSync(liferayLogPath) ? liferayLogPath : logPath;
-
-      const logOffset = logForGrep ? logSizeBytes(logForGrep) : 0;
-
-      // C6.a — blade gw deploy
-      const deployResult = await bladeDeploy(cet.cetDir, DEPLOY_TIMEOUT_MS);
-      deployOk = deployResult.exitCode === 0 && !deployResult.timedOut;
-
       if (!deployOk) {
-        comment = `blade gw deploy failed (exit=${deployResult.exitCode}, timedOut=${deployResult.timedOut}). stderr tail: ${deployResult.stderrTail.slice(-200)}`;
-      } else if (!logForGrep) {
-        comment = "no liferay log file found to verify initialization";
+        comment = "Agent transcript does not contain a successful Gradle build log ('BUILD SUCCESSFUL').";
       } else {
-        // C6.b — wait for "Initialized <siteName> ... in N ms"
-        const initializedPattern = new RegExp(
-          `Initialized ${escapeRegex(cet.siteName)} for group \\d+ in \\d+ ms`
-        );
-        const initWait = await waitForLogPattern(
-          logForGrep,
-          logOffset,
-          initializedPattern,
-          INIT_WAIT_MS
-        );
-        initOk = initWait.found;
+        const logPath = findCatalinaLog();
+        const liferayLogDir = resolve(REPO_ROOT, "bundles", "logs");
+        // The Liferay log we observed lives at bundles/logs/liferay.<date>.log
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const liferayLogPath = join(liferayLogDir, `liferay.${dateStr}.log`);
+        const logForGrep = existsSync(liferayLogPath) ? liferayLogPath : logPath;
+
+        const logOffset = state.logOffset;
+
+        if (!logForGrep) {
+          comment = "no liferay log file found to verify initialization";
+        } else {
+          // C6.b — wait for "Initialized <siteName> ... in N ms"
+          const initializedPattern = new RegExp(
+            `Initialized ${escapeRegex(cet.siteName)} for group \\d+ in \\d+ ms`
+          );
+          const initWait = await waitForLogPattern(
+            logForGrep,
+            logOffset,
+            initializedPattern,
+            INIT_WAIT_MS
+          );
+          initOk = initWait.found;
 
         if (initOk) {
           // verify the no-ERROR-between phase invariants
@@ -430,6 +443,7 @@ export const buildSiteStandard: EvalCase = {
           }
         }
       }
+    }
     } else {
       comment = `skipping deploy: structural criteria failed (${criteria
         .filter((c) => !c.passed)

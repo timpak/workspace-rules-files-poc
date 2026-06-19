@@ -16,17 +16,17 @@ import type { EvalCase, EvalResult } from "./types.js";
 
 const ID = "manage-object-logic-baseline";
 
-const PROMPT = `Whenever a new support ticket gets created, send me a notification so I can triage it.`;
+const PROMPT = `I have an existing object, CustomerSupportTicket. Whenever a new customer support ticket is created, I want the creator of the ticket to receive an in-app Liferay notification to confirm it was received.`;
 
 const RUBRIC_PATH = resolve(REPO_ROOT, "evals/rubrics/manage-object-logic-baseline.md");
 
-const TICKET_OBJECT_NAME = "EvalSupportTicket";
-const TICKET_PLURAL_PATH = "support-tickets"; // matches pluralLabel below
+const TICKET_OBJECT_NAME = "CustomerSupportTicket";
+const TICKET_PLURAL_PATH = "customer-support-tickets";
 
 const TICKET_DEF_PAYLOAD: Record<string, unknown> = {
   name: TICKET_OBJECT_NAME,
-  label: { en_US: "Eval Support Ticket" },
-  pluralLabel: { en_US: "Eval Support Tickets" },
+  label: { en_US: "Customer Support Ticket" },
+  pluralLabel: { en_US: "Customer Support Tickets" },
   scope: "company",
   active: true,
   objectFields: [

@@ -26,6 +26,7 @@ export type EvalResult = {
 export type GradeContext = {
   runDir: string;
   iter: number;
+  judgePromptPath?: string;
 };
 
 export type EvalCase = {
@@ -37,6 +38,8 @@ export type EvalCase = {
   rubricPath?: string;
   /** Override the default 5-minute agent driver timeout for tasks that span multiple skills. */
   agentTimeoutMs?: number;
+  /** Liferay feature flags that must be enabled on the running bundle for this eval to be meaningful. */
+  requiredFeatureFlags?: string[];
   setup?: () => Promise<void>;
   teardown?: () => Promise<void>;
   grade: (driver: DriverResult, ctx?: GradeContext) => Promise<EvalResult>;

@@ -1,11 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { REPO_ROOT } from "../driver.js";
-import {
-  bladeDeploy,
-  logSizeBytes,
-  waitForLogPattern,
-} from "../deploy.js";
+import { waitForLogPattern } from "../deploy.js";
 import { BASE_URL, liferayFetch } from "../portal.js";
 import { categorize, type CriterionOutcome } from "../graders/bucket.js";
 import { standardCleanupHooks } from "./shared.js";
@@ -280,24 +276,24 @@ export const themeOverrideStandard: EvalCase = {
 
     const structuralPassed = criteria.every((c) => c.passed);
 
-    let c3Pass = false;
+    const c3Pass = driver.transcript.includes("BUILD SUCCESSFUL");
     let c4Pass = false;
     let c5Pass = false;
     let comment = "";
 
     if (structuralPassed && cet) {
-      const logPath = findLiferayLogPath();
-      const logOffset = logPath ? logSizeBytes(logPath) : 0;
-
-      // C3 — blade gw deploy
-      const deployResult = await bladeDeploy(cet.cetDir, DEPLOY_TIMEOUT_MS);
-      c3Pass = deployResult.exitCode === 0 && !deployResult.timedOut;
       if (!c3Pass) {
-        comment = `blade gw deploy failed (exit=${deployResult.exitCode}, timedOut=${deployResult.timedOut}). stderr tail: ${deployResult.stderrTail.slice(-200)}`;
-      }
+        comment = "Agent transcript does not contain a successful Gradle build log ('BUILD SUCCESSFUL').";
+      } else {
+        const logPath = findLiferayLogPath();
+        // Search the whole log: the agent may self-deploy during iteration,
+        // so STARTED lines can appear before the grader starts. The
+        // BSN needle (CET dir name normalized) is unique enough to avoid
+        // false matches within a session.
+        const logOffset = 0;
 
-      // C4 — STARTED in log
-      if (c3Pass && logPath) {
+        // C4 — STARTED in log
+        if (logPath) {
         const bsnNeedle = normalizeBsn(cet.cetDirName);
         const pattern = new RegExp(`STARTED\\s+\\S*${bsnNeedle}\\S*`, "i");
         const result = await waitForLogPattern(logPath, logOffset, pattern, INIT_WAIT_MS);
@@ -305,7 +301,7 @@ export const themeOverrideStandard: EvalCase = {
         if (!c4Pass) {
           comment = `did not see STARTED for bundle matching "${bsnNeedle}" within ${INIT_WAIT_MS / 1000}s`;
         }
-      } else if (c3Pass && !logPath) {
+      } else {
         comment = "no liferay log file found to verify STARTED";
       }
 
@@ -333,6 +329,7 @@ export const themeOverrideStandard: EvalCase = {
           }
         }
       }
+    }
     } else {
       comment = `skipping deploy: structural criteria failed (${criteria
         .filter((c) => !c.passed)

@@ -4,6 +4,8 @@ export type CriterionOutcome = {
   id: string;
   passed: boolean;
   bucketOnFail: FailureBucket;
+  graderType?: "harness" | "llm-judge";
+  reasoning?: string;
 };
 
 export type BucketInputs = {
