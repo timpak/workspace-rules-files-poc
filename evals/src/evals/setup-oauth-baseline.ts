@@ -178,7 +178,7 @@ export const setupOauthBaseline: EvalCase = {
     }
 
     const oauthBlocks = blocks.filter(
-      (b) => b.fields.get("type") === "oAuthApplicationHeadlessServer"
+      (b) => b.fields.get("type") === "oAuthApplicationUserAgent"
     );
     const objectActionBlocks = blocks.filter((b) => b.fields.get("type") === "objectAction");
 
@@ -190,13 +190,13 @@ export const setupOauthBaseline: EvalCase = {
     let c2Pass = false;
     let c2Detail = "";
     const action = objectActionBlocks[0] ?? null;
-    const erc = action?.fields.get("oAuthApplicationHeadlessServerExternalReferenceCode") ?? null;
+    const erc = action?.fields.get("oAuth2ApplicationExternalReferenceCode") ?? null;
     if (!c1Pass) {
       c2Detail = "no OAuth entry to reference";
     } else if (!action) {
       c2Detail = "objectAction entry missing";
     } else if (!erc) {
-      c2Detail = "objectAction entry has no oAuthApplicationHeadlessServerExternalReferenceCode field";
+      c2Detail = "objectAction entry has no oAuth2ApplicationExternalReferenceCode field";
     } else {
       const oauthKeys = new Set(oauthBlocks.map((b) => b.key));
       const oauthNames = new Set(

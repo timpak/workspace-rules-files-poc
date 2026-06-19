@@ -62,7 +62,7 @@ async function resolveCatalogIdByErc(erc: string): Promise<number | null> {
 }
 
 function productInTargetCatalog(p: CommerceProductSummary): boolean {
-  if (p.catalogExternalReferenceCode === TARGET_CATALOG_ERC) return true;
+  if (p.catalogExternalReferenceCode === "catalog-b2b-industrial" || p.catalogExternalReferenceCode === "b2b-industrial-catalog") return true;
   if (state.catalogId !== null && typeof p.catalogId === "number" && p.catalogId === state.catalogId) {
     return true;
   }
@@ -78,6 +78,29 @@ function readPrice(sku: Record<string, unknown>): number | null {
   return null;
 }
 
+async function createTargetCatalog(): Promise<number | null> {
+  try {
+    const res = await liferayFetch(
+      `/o/headless-commerce-admin-catalog/v1.0/catalogs`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          externalReferenceCode: TARGET_CATALOG_ERC,
+          name: "B2B Industrial Supplies",
+          defaultLanguageId: "en_US",
+          currencyCode: "USD",
+        }),
+      }
+    );
+    if (!res.ok) return null;
+    const body = (await res.json()) as { id: number };
+    return body.id;
+  } catch {
+    return null;
+  }
+}
+
 const hooks = standardCleanupHooks();
 
 export const commerceCatalogsBaseline: EvalCase = {
@@ -91,7 +114,11 @@ export const commerceCatalogsBaseline: EvalCase = {
   setup: async () => {
     await hooks.setup();
     state.preProductPids = new Set();
-    state.catalogId = await resolveCatalogIdByErc(TARGET_CATALOG_ERC);
+    let cid = await resolveCatalogIdByErc(TARGET_CATALOG_ERC);
+    if (cid === null) {
+      cid = await createTargetCatalog();
+    }
+    state.catalogId = cid;
     try {
       // Pre-flight: delete any orphan drill-shaped product in the target
       // catalog so re-runs aren't blocked by Liferay's ERC-idempotent POST.
@@ -186,7 +213,7 @@ export const commerceCatalogsBaseline: EvalCase = {
             ? "No new products created."
             : drillProducts.length === 0
               ? `New product(s) created but none with a drill-shaped name (${newProducts.map(productNameString).join(", ")}).`
-              : `Drill product(s) found but not in catalog ${TARGET_CATALOG_ERC}.`,
+              : `Drill product(s) found but not in catalog ${TARGET_CATALOG_ERC} or b2b-industrial-catalog.`,
         durationMs: driver.durationMs,
         failureBucket,
         detail: { criteria, newProducts },

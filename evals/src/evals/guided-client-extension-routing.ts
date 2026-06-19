@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { REPO_ROOT, extractFinalResponse } from "../driver.js";
 import { categorize, type CriterionOutcome } from "../graders/bucket.js";
@@ -87,7 +87,7 @@ export const guidedClientExtensionRouting: EvalCase = {
     criteria.push({ id: "C1", passed: c1Pass, bucketOnFail: "wrong-skill-invoked", graderType: "harness" });
 
     // C2 — LLM-judged guidance offer (supporting only).
-    const response = extractFinalResponse(driver.transcript).trim();
+    const response = extractFinalResponse(readFileSync(driver.transcriptPath, "utf8")).trim();
 
     if (!response) {
       criteria.push({ id: "C2", passed: false, bucketOnFail: "stalled" });

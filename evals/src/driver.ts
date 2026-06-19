@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createWriteStream } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -8,7 +9,7 @@ const REPO_ROOT = resolve(__dirname, "..", "..");
 const DEFAULT_TIMEOUT_MS = 5 * 60 * 1000;
 
 export type DriverResult = {
-  transcript: string;
+  transcriptPath: string;
   stderr: string;
   exitCode: number | null;
   durationMs: number;
@@ -18,7 +19,7 @@ export type DriverResult = {
 
 export async function runAgent(
   prompt: string,
-  opts: { timeoutMs?: number; model?: string } = {}
+  opts: { timeoutMs?: number; model?: string; transcriptFile: string }
 ): Promise<DriverResult> {
   if (process.env.EVALS_ENGINE === "gemini") {
     return runGemini(prompt, opts);
@@ -35,7 +36,7 @@ export async function getAgentVersion(): Promise<string> {
 
 export async function runClaude(
   prompt: string,
-  opts: { timeoutMs?: number; model?: string } = {}
+  opts: { timeoutMs?: number; model?: string; transcriptFile: string }
 ): Promise<DriverResult> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const start = Date.now();
@@ -59,7 +60,9 @@ export async function runClaude(
       stdio: ["ignore", "pipe", "pipe"],
     });
 
-    let stdout = "";
+    const fileStream = createWriteStream(opts.transcriptFile);
+    child.stdout.pipe(fileStream);
+
     let stderr = "";
     let timedOut = false;
 
@@ -69,9 +72,6 @@ export async function runClaude(
       setTimeout(() => child.kill("SIGKILL"), 5_000).unref();
     }, timeoutMs);
 
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
     });
@@ -83,13 +83,15 @@ export async function runClaude(
 
     child.on("close", (code) => {
       clearTimeout(timer);
-      resolvePromise({
-        transcript: stdout,
-        stderr,
-        exitCode: code,
-        durationMs: Date.now() - start,
-        timedOut,
-        model,
+      fileStream.end(() => {
+        resolvePromise({
+          transcriptPath: opts.transcriptFile,
+          stderr,
+          exitCode: code,
+          durationMs: Date.now() - start,
+          timedOut,
+          model,
+        });
       });
     });
   });
@@ -109,7 +111,7 @@ export async function getClaudeVersion(): Promise<string> {
 
 export async function runGemini(
   prompt: string,
-  opts: { timeoutMs?: number; model?: string } = {}
+  opts: { timeoutMs?: number; model?: string; transcriptFile: string }
 ): Promise<DriverResult> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const start = Date.now();
@@ -133,7 +135,9 @@ export async function runGemini(
       stdio: ["ignore", "pipe", "pipe"],
     });
 
-    let stdout = "";
+    const fileStream = createWriteStream(opts.transcriptFile);
+    child.stdout.pipe(fileStream);
+
     let stderr = "";
     let timedOut = false;
 
@@ -143,9 +147,6 @@ export async function runGemini(
       setTimeout(() => child.kill("SIGKILL"), 5_000).unref();
     }, timeoutMs);
 
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString();
-    });
     child.stderr.on("data", (chunk) => {
       stderr += chunk.toString();
     });
@@ -157,13 +158,15 @@ export async function runGemini(
 
     child.on("close", (code) => {
       clearTimeout(timer);
-      resolvePromise({
-        transcript: stdout,
-        stderr,
-        exitCode: code,
-        durationMs: Date.now() - start,
-        timedOut,
-        model,
+      fileStream.end(() => {
+        resolvePromise({
+          transcriptPath: opts.transcriptFile,
+          stderr,
+          exitCode: code,
+          durationMs: Date.now() - start,
+          timedOut,
+          model,
+        });
       });
     });
   });

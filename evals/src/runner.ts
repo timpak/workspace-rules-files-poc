@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { evals } from "./evals/index.js";
@@ -254,7 +254,8 @@ async function runIteration(
   let agentStdoutTail: string | undefined;
 
   try {
-    const driverOpts: { timeoutMs?: number; model?: string } = {};
+    const transcriptFile = resolve(evalDir, `${iterStem}.agent.stdout.log`);
+    const driverOpts: { timeoutMs?: number; model?: string; transcriptFile: string } = { transcriptFile };
     if (model) driverOpts.model = model;
     if (evalCase.agentTimeoutMs) driverOpts.timeoutMs = evalCase.agentTimeoutMs;
     const driver = await runAgent(evalCase.prompt, driverOpts);
@@ -262,8 +263,7 @@ async function runIteration(
     agentTimedOut = driver.timedOut;
     agentModel = driver.model;
     agentStderrTail = tail(driver.stderr);
-    agentStdoutTail = tail(driver.transcript);
-    writeFileSync(resolve(evalDir, `${iterStem}.agent.stdout.log`), driver.transcript);
+    agentStdoutTail = tail(readFileSync(driver.transcriptPath, "utf8"));
     writeFileSync(resolve(evalDir, `${iterStem}.agent.stderr.log`), driver.stderr);
     const ctx: GradeContext = { runDir: evalDir, iter, judgePromptPath };
     if (driver.timedOut) {

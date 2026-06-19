@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { REPO_ROOT, extractFinalResponse } from "../driver.js";
 import { categorize, type CriterionOutcome } from "../graders/bucket.js";
@@ -22,7 +23,7 @@ export const featureFlagsDiagnostic: EvalCase = {
   setup: hooks.setup,
   teardown: hooks.teardown,
   grade: async (driver): Promise<EvalResult> => {
-    const response = extractFinalResponse(driver.transcript).trim();
+    const response = extractFinalResponse(readFileSync(driver.transcriptPath, "utf8")).trim();
 
     if (!response) {
       const criteria: CriterionOutcome[] = [

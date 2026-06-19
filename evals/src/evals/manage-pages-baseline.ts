@@ -22,7 +22,7 @@ const SITE_FRIENDLY = "/guest";
 const ABOUT_RE = /about/i;
 
 type SetupState = {
-  prePageIds: Set<number>;
+  prePageIds: Set<string>;
 };
 
 const state: SetupState = { prePageIds: new Set() };
@@ -64,7 +64,9 @@ export const managePagesBaseline: EvalCase = {
     state.prePageIds = new Set();
     try {
       const existing = await listSitePages(SITE_ERC);
-      state.prePageIds = new Set(existing.map((p) => p.id));
+      state.prePageIds = new Set(
+        existing.map((p) => p.externalReferenceCode || "")
+      );
     } catch {
       state.prePageIds = new Set();
     }
@@ -74,9 +76,12 @@ export const managePagesBaseline: EvalCase = {
     try {
       const current = await listSitePages(SITE_ERC);
       for (const p of current) {
-        if (!state.prePageIds.has(p.id)) {
+        if (
+          p.externalReferenceCode &&
+          !state.prePageIds.has(p.externalReferenceCode)
+        ) {
           try {
-            await deleteSitePage(p.id);
+            await deleteSitePage(SITE_ERC, p.externalReferenceCode);
           } catch {
             // best effort
           }
@@ -111,7 +116,11 @@ export const managePagesBaseline: EvalCase = {
       };
     }
 
-    const newPages = pages.filter((p) => !state.prePageIds.has(p.id));
+    const newPages = pages.filter(
+      (p) =>
+        p.externalReferenceCode &&
+        !state.prePageIds.has(p.externalReferenceCode)
+    );
     const aboutPage = newPages.find(friendlyUrlMatchesAbout);
 
     const c1Pass = aboutPage !== undefined;

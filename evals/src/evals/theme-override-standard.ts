@@ -276,7 +276,7 @@ export const themeOverrideStandard: EvalCase = {
 
     const structuralPassed = criteria.every((c) => c.passed);
 
-    const c3Pass = driver.transcript.includes("BUILD SUCCESSFUL");
+    const c3Pass = readFileSync(driver.transcriptPath, "utf8").includes("BUILD SUCCESSFUL");
     let c4Pass = false;
     let c5Pass = false;
     let comment = "";

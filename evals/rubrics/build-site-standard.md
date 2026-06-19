@@ -10,7 +10,7 @@
 > Hey, we're doing a spring promo launch site and need a quick page on
 > it to point ads at. Just needs to say something punchy at the top —
 > I want our team to be able to update that text ourselves once it's
-> up.
+> up. Let me know when the site is up.
 
 ## Pre-conditions (set up by harness)
 

@@ -9,7 +9,7 @@ import type { EvalCase, EvalResult } from "./types.js";
 
 const ID = "build-site-standard";
 
-const PROMPT = `Hey, we're doing a spring promo launch site and need a quick page on it to point ads at. Just needs to say something punchy at the top — I want our team to be able to update that text ourselves once it's up.`;
+const PROMPT = `Hey, we're doing a spring promo launch site and need a quick page on it to point ads at. Just needs to say something punchy at the top — I want our team to be able to update that text ourselves once it's up. Let me know when the site is up.`;
 
 const RUBRIC_PATH = resolve(REPO_ROOT, "evals/rubrics/build-site-standard.md");
 const CLIENT_EXTENSIONS = resolve(REPO_ROOT, "client-extensions");
@@ -357,7 +357,7 @@ export const buildSiteStandard: EvalCase = {
     // If structure is broken, don't bother trying to deploy.
     const structuralPassed = criteria.every((c) => c.passed);
 
-    const deployOk = driver.transcript.includes("BUILD SUCCESSFUL");
+    const deployOk = readFileSync(driver.transcriptPath, "utf8").includes("BUILD SUCCESSFUL");
     let initOk = false;
     let siteOk = false;
     let renderOk = false;
@@ -420,7 +420,8 @@ export const buildSiteStandard: EvalCase = {
                 fragmentKeys.has(k)
               )!;
               const fragment = validFragments.find((f) => f.key === referencedKey)!;
-              const url = `/web/group-${site.id}${friendlyUrl}`;
+              const sitePath = site.friendlyUrlPath || `/group-${site.id}`;
+              const url = `/web${sitePath}${friendlyUrl}`;
               const res = await liferayFetch(url);
               if (res.status === 200) {
                 const body = await res.text();

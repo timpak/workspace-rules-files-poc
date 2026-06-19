@@ -20,31 +20,16 @@
 
 ## What the canonical solution looks like
 
-The agent adds a sibling `oAuthApplicationHeadlessServer` entry to the
-yaml and wires the `objectAction` entry's
-`oAuthApplicationHeadlessServerExternalReferenceCode` value to the OAuth
-entry's top-level YAML key — NOT its `name` field.
-
-```yaml
-promo-discount-action:
-  name: Promo Discount Action
-  oAuthApplicationHeadlessServerExternalReferenceCode: promo-discount-action-oauth
-  # ... other fields
-  type: objectAction
-
-promo-discount-action-oauth:
-  name: Promo Discount Action OAuth Application
-  scopes:
-    - Liferay.Headless.Object.everything
-  type: oAuthApplicationHeadlessServer
-```
+The agent adds a sibling `oAuthApplicationUserAgent` entry to the yaml
+and wires the `objectAction` entry's `oAuth2ApplicationExternalReferenceCode`
+to the OAuth entry's top-level YAML key — NOT its `name` field.
 
 ## Criteria
 
 ### C1 — OAuth entry exists
 
 The yaml parses and contains a top-level entry with
-`type: oAuthApplicationHeadlessServer`.
+`type: oAuthApplicationUserAgent`.
 
 **Bucket on fail:** `skill-not-invoked`
 
@@ -52,18 +37,16 @@ The yaml parses and contains a top-level entry with
 
 ### C2 — ERC references the top-level YAML key, not the `name` field
 
-The objectAction entry's
-`oAuthApplicationHeadlessServerExternalReferenceCode` value MUST exactly
-equal the top-level YAML key of the OAuth entry (case-sensitive). If the
-ERC matches the OAuth entry's `name` field but not its top-level key, C2
-fails — this is the documented #1 mistake.
+The objectAction entry's `oAuth2ApplicationExternalReferenceCode` value
+MUST exactly equal the top-level YAML key of the OAuth entry
+(case-sensitive). If the ERC matches the OAuth entry's `name` field but
+not its top-level key, C2 fails — this is the documented #1 mistake.
 
 **Bucket on fail:** `rule-misapplied`
 
 **Cites:** `setup-oauth/SKILL.md` §2 — "The **top-level key** of this
 entry … **not** its `name` field must be referenced as the
-`oAuthApplicationHeadlessServerExternalReferenceCode` value." Also §6
-troubleshoot row.
+`oAuth2ApplicationExternalReferenceCode` value." Also §6 troubleshoot row.
 
 ### C3 — Scopes include an Object-CRUD scope (supporting)
 
@@ -85,7 +68,7 @@ STRICT on C1 + C2. C3 is supporting (does not gate the run).
 | Observation | Bucket |
 |---|---|
 | Agent did not modify the yaml at all | `skill-not-invoked` |
-| OAuth entry exists with wrong `type` (e.g., `oAuthApplicationUserAgent`) | `rule-misapplied` |
+| OAuth entry exists with wrong `type` (e.g., `oAuthApplicationHeadlessServer`) | `rule-misapplied` |
 | ERC matches OAuth entry's `name` field but not the top-level YAML key | `rule-misapplied` |
 | Agent renamed/deleted the existing objectAction entry | `rule-misapplied` |
 | Agent stopped mid-task awaiting input | `stalled` |

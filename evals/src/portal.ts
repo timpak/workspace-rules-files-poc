@@ -18,7 +18,30 @@ export async function liferayFetch(path: string, init: RequestInit = {}): Promis
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  return fetch(`${BASE_URL}${path}`, { ...init, headers });
+
+  const maxRetries = 3;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fetch(`${BASE_URL}${path}`, { ...init, headers });
+    } catch (err: any) {
+      lastError = err;
+      const isSocketError =
+        err?.code === "UND_ERR_SOCKET" ||
+        err?.cause?.code === "ECONNREFUSED" ||
+        err?.cause?.code === "ECONNRESET";
+
+      if (isSocketError && attempt < maxRetries) {
+        const delayMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+        console.warn(`[liferayFetch] Socket error on ${path}, retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})...`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
 }
 
 export async function healthCheck(): Promise<void> {
@@ -156,7 +179,7 @@ export async function cleanupNewArtifacts(baseline: PortalSnapshot): Promise<Cle
   return report;
 }
 
-export type SiteSummary = { id: number; externalReferenceCode?: string; descriptiveName?: string };
+export type SiteSummary = { id: number; externalReferenceCode?: string; descriptiveName?: string; friendlyUrlPath?: string };
 
 export async function getSiteByErc(erc: string): Promise<SiteSummary | null> {
   const res = await liferayFetch(
@@ -198,14 +221,14 @@ export async function listSitePages(siteErc: string): Promise<SitePageSummary[]>
   return items as unknown as SitePageSummary[];
 }
 
-export async function deleteSitePage(pageId: number): Promise<boolean> {
+export async function deleteSitePage(siteErc: string, pageErc: string): Promise<boolean> {
   const res = await liferayFetch(
-    `/o/headless-admin-site/v1.0/site-pages/${pageId}`,
+    `/o/headless-admin-site/v1.0/sites/${encodeURIComponent(siteErc)}/site-pages/${encodeURIComponent(pageErc)}`,
     { method: "DELETE" }
   );
   if (res.status === 404) return false;
   if (!res.ok) {
-    throw new Error(`deleteSitePage(${pageId}) HTTP ${res.status}: ${await res.text()}`);
+    throw new Error(`deleteSitePage(${siteErc}, ${pageErc}) HTTP ${res.status}: ${await res.text()}`);
   }
   return true;
 }
@@ -237,7 +260,7 @@ export type UserNotificationSummary = { id: number; [key: string]: unknown };
 
 export async function listMyUserNotifications(): Promise<UserNotificationSummary[]> {
   const items = await fetchAllIds(
-    "/o/headless-admin-user/v1.0/my-user-account/user-notifications"
+    "/o/notification/v1.0/notification-queue-entries"
   );
   return items as unknown as UserNotificationSummary[];
 }
