@@ -227,9 +227,7 @@ function normalizeBsn(s: string): string {
   return s.replace(/[^A-Za-z0-9]/g, "").toLowerCase();
 }
 
-const hooks = standardCleanupHooks({
-  stashDirs: ["client-extensions", "modules", "themes"],
-});
+const hooks = standardCleanupHooks();
 
 export const themeOverrideStandard: EvalCase = {
   id: ID,

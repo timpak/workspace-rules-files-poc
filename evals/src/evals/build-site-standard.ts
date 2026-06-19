@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { REPO_ROOT } from "../driver.js";
-import { bladeDeploy, findCatalinaLog, logSizeBytes, readLogSince, waitForLogPattern } from "../deploy.js";
+import { findCatalinaLog, logSizeBytes, waitForLogPattern } from "../deploy.js";
 import { deleteSiteByErc, getSiteByErc, liferayFetch } from "../portal.js";
 import { categorize, type CriterionOutcome } from "../graders/bucket.js";
 import { standardCleanupHooks } from "./shared.js";
@@ -255,9 +255,7 @@ function noErrorBetween(text: string, start: string, end: string): boolean {
   return !/\bERROR\b/.test(slice);
 }
 
-const hooks = standardCleanupHooks({
-  stashDirs: ["client-extensions", "modules", "themes"],
-});
+const hooks = standardCleanupHooks();
 
 type SetupState = {
   logOffset: number;
@@ -357,63 +355,65 @@ export const buildSiteStandard: EvalCase = {
     // If structure is broken, don't bother trying to deploy.
     const structuralPassed = criteria.every((c) => c.passed);
 
-    const deployOk = readFileSync(driver.transcriptPath, "utf8").includes("BUILD SUCCESSFUL");
+    let deployOk = false;
     let initOk = false;
     let siteOk = false;
     let renderOk = false;
     let comment = "";
 
     if (structuralPassed && cet) {
-      if (!deployOk) {
-        comment = "Agent transcript does not contain a successful Gradle build log ('BUILD SUCCESSFUL').";
+      const logPath = findCatalinaLog();
+      const liferayLogDir = resolve(REPO_ROOT, "bundles", "logs");
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const liferayLogPath = join(liferayLogDir, `liferay.${dateStr}.log`);
+      const logForGrep = existsSync(liferayLogPath) ? liferayLogPath : logPath;
+
+      const logOffset = state.logOffset;
+
+      if (!logForGrep) {
+        comment = "no liferay log file found to verify initialization";
       } else {
-        const logPath = findCatalinaLog();
-        const liferayLogDir = resolve(REPO_ROOT, "bundles", "logs");
-        // The Liferay log we observed lives at bundles/logs/liferay.<date>.log
-        const dateStr = new Date().toISOString().slice(0, 10);
-        const liferayLogPath = join(liferayLogDir, `liferay.${dateStr}.log`);
-        const logForGrep = existsSync(liferayLogPath) ? liferayLogPath : logPath;
+        // Wait for the final "Initialized" line; the accumulated text also
+        // contains the earlier "Initializing" marker so both checks share one read.
+        const initializedPattern = new RegExp(
+          `Initialized ${escapeRegex(cet.siteName)} for group \\d+ in \\d+ ms`
+        );
+        const initWait = await waitForLogPattern(
+          logForGrep,
+          logOffset,
+          initializedPattern,
+          INIT_WAIT_MS
+        );
 
-        const logOffset = state.logOffset;
+        // C6.a — deploy: the site initializer fired (bundle reached Liferay).
+        // Checking the Liferay log avoids a false-negative when the agent
+        // backgrounds the deploy and pipes Gradle output to a temp file.
+        const initializingMarker = `Initializing ${cet.siteName} for group`;
+        deployOk = initWait.text.includes(initializingMarker);
 
-        if (!logForGrep) {
-          comment = "no liferay log file found to verify initialization";
+        if (!deployOk) {
+          comment = `site initializer did not fire — "${initializingMarker}" not found in log within ${INIT_WAIT_MS / 1000}s`;
+        } else if (!initWait.found) {
+          comment = `did not find Initialized log line for siteName="${cet.siteName}" within ${INIT_WAIT_MS / 1000}s`;
         } else {
-          // C6.b — wait for "Initialized <siteName> ... in N ms"
-          const initializedPattern = new RegExp(
-            `Initialized ${escapeRegex(cet.siteName)} for group \\d+ in \\d+ ms`
-          );
-          const initWait = await waitForLogPattern(
-            logForGrep,
-            logOffset,
-            initializedPattern,
-            INIT_WAIT_MS
-          );
-          initOk = initWait.found;
-
-        if (initOk) {
-          // verify the no-ERROR-between phase invariants
+          // C6.b — init: all phase markers present with no ERROR between them.
           const initText = initWait.text;
-          const initializingMarker = `Initializing ${cet.siteName} for group`;
           const fragMarker = "Invoking addFragmentEntries";
           const layoutMarker = "Invoking addOrUpdateLayouts";
           const fragClean = noErrorBetween(initText, initializingMarker, fragMarker);
           const layoutClean = noErrorBetween(initText, fragMarker, layoutMarker);
           if (!fragClean || !layoutClean) {
-            initOk = false;
             comment = "initializer log contains ERROR between phase markers";
+          } else {
+            initOk = true;
           }
-        } else {
-          comment = `did not find Initialized log line for siteName="${cet.siteName}" within ${INIT_WAIT_MS / 1000}s`;
         }
 
         if (initOk) {
-          // C7.a — site exists
           try {
             const site = await getSiteByErc(cet.siteErc);
             if (site && typeof site.id === "number") {
               siteOk = true;
-              // C7.b — page renders with markers
               const layout = layoutReferencingFragment!;
               const friendlyUrl = layout.friendlyUrl ?? "/";
               const referencedKey = layout.referencedFragmentKeys.find((k) =>
@@ -444,7 +444,6 @@ export const buildSiteStandard: EvalCase = {
           }
         }
       }
-    }
     } else {
       comment = `skipping deploy: structural criteria failed (${criteria
         .filter((c) => !c.passed)

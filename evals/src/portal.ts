@@ -29,6 +29,7 @@ export async function liferayFetch(path: string, init: RequestInit = {}): Promis
       lastError = err;
       const isSocketError =
         err?.code === "UND_ERR_SOCKET" ||
+        err?.cause?.code === "UND_ERR_SOCKET" ||
         err?.cause?.code === "ECONNREFUSED" ||
         err?.cause?.code === "ECONNRESET";
 

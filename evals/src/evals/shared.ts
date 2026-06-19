@@ -81,12 +81,33 @@ function unstashDirs(stashId: string): void {
   }
 }
 
-function recoverOrphanStash(): void {
+export function recoverOrphanStash(): void {
   if (!existsSync(MANIFEST_PATH)) return;
   try {
     const manifest = JSON.parse(readFileSync(MANIFEST_PATH, "utf8")) as { stashId?: string };
     if (manifest.stashId) {
       console.warn(`  [stash recovery] restoring orphan stash ${manifest.stashId}`);
+      unstashDirs(manifest.stashId);
+    } else {
+      rmSync(MANIFEST_PATH, { force: true });
+    }
+  } catch {
+    rmSync(MANIFEST_PATH, { force: true });
+  }
+}
+
+const DEFAULT_STASH_DIRS = ["client-extensions", "modules", "themes"];
+
+export function stashWorkspace(dirs: string[] = DEFAULT_STASH_DIRS): void {
+  const stashId = `${process.pid}-${Date.now()}`;
+  stashDirs(dirs, stashId);
+}
+
+export function unstashWorkspace(): void {
+  if (!existsSync(MANIFEST_PATH)) return;
+  try {
+    const manifest = JSON.parse(readFileSync(MANIFEST_PATH, "utf8")) as { stashId?: string };
+    if (manifest.stashId) {
       unstashDirs(manifest.stashId);
     } else {
       rmSync(MANIFEST_PATH, { force: true });
@@ -107,20 +128,12 @@ function recoverOrphanStash(): void {
  * Does NOT cover: commerce catalogs, products, B2B accounts, OAuth
  * applications registered via deploy.
  */
-export function standardCleanupHooks(options?: { stashDirs?: string[] }): CleanupHooks {
+export function standardCleanupHooks(): CleanupHooks {
   let workspaceBaseline: WorkspaceSnapshot | null = null;
   let portalBaseline: PortalSnapshot | null = null;
-  let stashId: string | null = null;
-  // Default to stashing client-extensions, modules, and themes to keep the workspace pristine
-  const dirsToStash = options?.stashDirs ?? ["client-extensions", "modules", "themes"];
 
   return {
     setup: async () => {
-      if (dirsToStash.length > 0) {
-        recoverOrphanStash();
-        stashId = `${process.pid}-${Date.now()}`;
-        stashDirs(dirsToStash, stashId);
-      }
       workspaceBaseline = snapshotWorkspace();
       portalBaseline = await snapshotPortal();
     },
@@ -149,10 +162,6 @@ export function standardCleanupHooks(options?: { stashDirs?: string[] }): Cleanu
           );
         }
         portalBaseline = null;
-      }
-      if (stashId !== null) {
-        unstashDirs(stashId);
-        stashId = null;
       }
     },
   };

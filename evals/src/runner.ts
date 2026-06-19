@@ -5,6 +5,7 @@ import { evals } from "./evals/index.js";
 import { runAgent, getAgentVersion } from "./driver.js";
 import { healthCheck, BASE_URL } from "./portal.js";
 import { checkRequiredFlags } from "./preflight.js";
+import { recoverOrphanStash, stashWorkspace, unstashWorkspace } from "./evals/shared.js";
 import { loadRubric } from "./graders/rubric.js";
 import type {
   EvalCase,
@@ -477,12 +478,19 @@ async function main(): Promise<void> {
 
   console.log(`\nRun root: ${runRoot}`);
 
+  recoverOrphanStash();
+  stashWorkspace();
+
   const startedAt = new Date().toISOString();
   const evalEntries: EvalSummaryEntry[] = [];
 
-  for (const c of cases) {
-    const entry = await runEval(c, iterations, model, agentVersion, runRoot, auditPath);
-    evalEntries.push(entry);
+  try {
+    for (const c of cases) {
+      const entry = await runEval(c, iterations, model, agentVersion, runRoot, auditPath);
+      evalEntries.push(entry);
+    }
+  } finally {
+    unstashWorkspace();
   }
 
   const totalPassed = evalEntries.filter((e) => e.passed).length;
