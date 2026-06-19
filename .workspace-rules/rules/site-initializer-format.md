@@ -260,20 +260,24 @@ For themeCSS CETs leave `themeId` as `"classic_WAR_classictheme"` and control ap
 
 ```yaml
 <workspace-id>-site-init:
-  name: <WorkspaceId> Site Initializer
-  oAuthApplicationHeadlessServerExternalReferenceCode: <workspace-id>-site-oauth
-  type: siteInitializer
+    name: <WorkspaceId> Site Initializer
+    oAuthApplicationHeadlessServer: <workspace-id>-site-oauth
+    siteExternalReferenceCode: <workspace-id>
+    siteName: <WorkspaceId> Site
+    type: siteInitializer
 
 <workspace-id>-site-oauth:
-  name: <WorkspaceId> Site OAuth
-  scopes:
-    - Liferay.Headless.Admin.Site.everything
-    - Liferay.Headless.Admin.Content.everything
-    - Liferay.Object.Admin.REST.everything
-    - Liferay.Headless.Object.everything
-    - Liferay.Headless.Admin.User.everything
-    - Liferay.Headless.Batch.Engine.everything
-  type: oAuthApplicationHeadlessServer
+    .serviceAddress: localhost:8080
+    .serviceScheme: http
+    name: <WorkspaceId> Site OAuth
+    scopes:
+        - Liferay.Headless.Site.everything
+        - Liferay.Headless.Admin.Content.everything
+        - Liferay.Object.Admin.REST.everything
+        - Liferay.Headless.Object.everything
+        - Liferay.Headless.Admin.User.everything
+        - Liferay.Headless.Batch.Engine.everything
+    type: oAuthApplicationHeadlessServer
 ```
 
 ## Triggering the Initializer

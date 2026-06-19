@@ -1,6 +1,11 @@
 # OAuth Scopes (CET Scaffolding Reference)
 
-This card lists the `Liferay.*` scope strings that go into the `oAuthApplicationHeadlessServer` block of a `client-extension.yaml`. Use it when scaffolding microservice CETs (`objectAction`, `objectValidationRule`, `objectEntryManager`, `notificationType`, `workflowAction`, etc.), `siteInitializer` CETs, or any other CET that needs Liferay to OAuth back into the agent.
+This card lists the `Liferay.*` scope strings used in OAuth companion entries in `client-extension.yaml`. Two OAuth CET types carry scopes, and which to use depends on the direction of the call:
+
+- **`oAuthApplicationHeadlessServer`** — used by `siteInitializer` and `batch` CETs, where the CET calls into Liferay's Headless APIs using a service-account token.
+- **`oAuthApplicationUserAgent`** — used by microservice CETs (`objectAction`, `objectValidationRule`, `objectEntryManager`, `notificationType`, `workflowAction`, etc.), where Liferay calls the microservice and passes a user-delegated token that the microservice can use to call back into Liferay.
+
+The scope strings in the table below apply to both types — only the companion CET type differs.
 
 **Not needed for:**
 - Curl examples using Basic auth (`test@liferay.com:test`). Basic auth as the test user has full admin perms; scopes are not evaluated.
@@ -42,19 +47,31 @@ A microservice CET that only reads/writes object entries (most `objectAction`, `
 | `notificationType` | `Liferay.Headless.Object.everything` |
 | `workflowAction` | `Liferay.Headless.Admin.Workflow.everything`, `Liferay.Headless.Object.everything` |
 | `batchEngineDataImportTaskExecutor` | `Liferay.Headless.Batch.Engine.everything`, `Liferay.Headless.Object.everything` |
-| `siteInitializer` | `Liferay.Headless.Admin.Site.everything`, `Liferay.Headless.Admin.Content.everything`, `Liferay.Object.Admin.REST.everything`, `Liferay.Headless.Object.everything`, `Liferay.Headless.Admin.User.everything` |
+| `siteInitializer` | `Liferay.Headless.Site.everything`, `Liferay.Headless.Admin.Content.everything`, `Liferay.Object.Admin.REST.everything`, `Liferay.Headless.Object.everything`, `Liferay.Headless.Admin.User.everything` |
 | Commerce CETs | Granular per Commerce subdomain — e.g. `Liferay.Headless.Commerce.Admin.Channel.everything`, `Liferay.Headless.Commerce.Admin.Order.everything`, `Liferay.Headless.Commerce.Admin.Catalog.everything`. Verify the exact subdomain against the relevant `headless-commerce-admin-*` module's `rest-config.yaml`. |
 
 ## How Scopes Appear in `client-extension.yaml`
 
 ```yaml
-<workspace-id>-oauth:
-  name: <WorkspaceId> OAuth Application
-  scopes:
-    - Liferay.Headless.Admin.Site.everything
-    - Liferay.Object.Admin.REST.everything
-    - Liferay.Headless.Object.everything
-  type: oAuthApplicationHeadlessServer
+# siteInitializer / batch — CET calls INTO Liferay using a service-account token
+<workspace-id>-site-oauth:
+    .serviceAddress: localhost:8080
+    .serviceScheme: http
+    name: <WorkspaceId> Site OAuth
+    scopes:
+        - Liferay.Headless.Site.everything
+        - Liferay.Object.Admin.REST.everything
+    type: oAuthApplicationHeadlessServer
+
+# objectAction / workflowAction / notificationType — Liferay calls the microservice
+# and passes a user-delegated token; the microservice uses it to call back into Liferay
+<workspace-id>-action-oauth:
+    .serviceAddress: localhost:8081
+    .serviceScheme: http
+    name: <WorkspaceId> Action OAuth
+    scopes:
+        - Liferay.Headless.Object.everything
+    type: oAuthApplicationUserAgent
 ```
 
 Each scope string is one list entry. Liferay validates the list on deploy; unknown scope strings cause deployment to fail with a configuration error.

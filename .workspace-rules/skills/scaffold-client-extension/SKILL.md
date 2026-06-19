@@ -120,16 +120,18 @@ client-extensions/<name>/
 
 ```yaml
 <workspace-id>-oauth:
-  name: <WorkspaceId> OAuth
-  scopes:
-    - Liferay.Headless.Object.everything
-  type: oAuthApplicationHeadlessServer
+    .serviceAddress: localhost:8081
+    .serviceScheme: http
+    name: <WorkspaceId> OAuth
+    scopes:
+        - Liferay.Headless.Object.everything
+    type: oAuthApplicationUserAgent
 
 <workspace-id>-<name>:
-  baseURL: "http://localhost:8081"
-  name: <Display Name> Action
-  oAuthApplicationHeadlessServerExternalReferenceCode: <workspace-id>-oauth
-  type: objectAction
+    name: <Display Name> Action
+    oAuth2ApplicationExternalReferenceCode: <workspace-id>-oauth
+    resourcePath: /object/action/<name>
+    type: objectAction
 ```
 
 ```
@@ -183,9 +185,9 @@ liferay.oauth.application.external.reference.code=<workspace-id>-oauth
   type: oAuthApplicationHeadlessServer
 ```
 
-`siteExternalReferenceCode` uniquely identifies the site so re-running the initializer updates it rather than creating a duplicate. Derive it from the site name in kebab-case.
-
 Populate `site-initializer/` per `rules/site-initializer-format.md`.
+
+`siteExternalReferenceCode` uniquely identifies the site so re-running the initializer updates it rather than creating a duplicate. Derive it from the site name in kebab-case.
 
 ### 5. Wire OAuth When Required
 

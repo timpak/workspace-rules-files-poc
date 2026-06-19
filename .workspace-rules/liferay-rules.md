@@ -83,6 +83,9 @@ Skills live under `skills/` and load on demand. Each addresses one workflow.
 - `manage-environments` — `configs/{env}/`, data migration, siteInitializer capture
 - `commerce-catalogs` — Commerce catalogs, products, SKUs, B2B onboarding
 
+**Cloud**
+- `manage-cloud-project` — deploy and operate Liferay Cloud (LXC) projects via the `lcp` CLI
+
 **Orchestrator**
 - `build-site` — compose objects, pages, fragments, and roles into a complete site experience
 

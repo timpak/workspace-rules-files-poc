@@ -26,22 +26,11 @@ Examples:
 
 ### 2. Add the OAuth Application Entry to `client-extension.yaml`
 
-Add a sibling entry of type `oAuthApplicationHeadlessServer` in the same `client-extension.yaml` as the consuming CET. The **top-level key** of this entry (its `<workspace-id>-oauth` map key — **not** its `name` field) must be referenced as the `oAuthApplicationHeadlessServerExternalReferenceCode` value in the CET entry.
+The OAuth companion type depends on the consuming CET — check `rules/client-extension-types.md` for the correct type and ERC field name for the CET you are wiring.
 
-```yaml
-<workspace-id>-oauth:
-  name: <WorkspaceId> OAuth Application
-  scopes:
-    - Liferay.Headless.Admin.User.everything
-    - Liferay.Headless.Object.everything
-  type: oAuthApplicationHeadlessServer
+Microservice handler CETs (`objectAction`, `workflowAction`, `notificationType`, `objectEntryManager`, `objectValidationRule`) use `oAuthApplicationUserAgent`. The **top-level key** of the OAuth entry — **not** its `name` field — is what goes in `oAuth2ApplicationExternalReferenceCode` on the CET.
 
-<workspace-id>-my-action:
-  name: My Object Action
-  oAuthApplicationHeadlessServerExternalReferenceCode: <workspace-id>-oauth
-  type: objectAction
-  # ... other fields
-```
+Deploy-time CETs (`siteInitializer`, `batch`) use `oAuthApplicationHeadlessServer`, referenced via the `oAuthApplicationHeadlessServer` field on the CET entry.
 
 Replace `<workspace-id>` with the value of `id` in `client-extension.yaml`.
 
@@ -72,7 +61,7 @@ Both the OAuth application bundle and the CET bundle should show `ACTIVE`.
 
 ### 5. Token Acquisition (for Manual Testing)
 
-Liferay uses the service account flow for `oAuthApplicationHeadlessServer`. The deployed CET retrieves the token automatically via the Liferay OAuth2 API. For manual testing:
+The deployed CET retrieves its token automatically via the Liferay OAuth2 API. For manual testing:
 
 ```bash
 curl -s -u "<clientId>:<clientSecret>" \
@@ -90,4 +79,4 @@ The client ID and secret are displayed once in Control Panel → OAuth 2 Adminis
 | 401 on API call from CET | OAuth entry deployed and `ACTIVE`; token scope covers the endpoint |
 | 403 on specific resource | Scope too narrow; add the resource's scope string from `rules/oauth-scopes.md` |
 | Application not in Control Panel | Bundle not `ACTIVE`; run `diag <id>` in Gogo shell |
-| `oAuthApplicationHeadlessServerExternalReferenceCode` not resolved | ERC in yaml must match the `<key>` (top-level key) of the OAuth entry, not the `name` field |
+| ERC not resolved | ERC field in yaml must match the top-level key of the OAuth entry, not its `name` field |
